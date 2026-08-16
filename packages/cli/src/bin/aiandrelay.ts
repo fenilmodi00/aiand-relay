@@ -5,6 +5,7 @@ import { parseArgs } from "../lib/parse-args.js";
 import { printHelp, runConfigure } from "../lib/commands/global.js";
 import { dispatchHarnessCommand } from "../lib/commands/harness.js";
 import { isHarnessCommand, resolveHarnessInvocation } from "../lib/commands/harness-invocation.js";
+import { ensureApiKeyInteractive } from "../lib/ensure-api-key.js";
 import { readGlobalConfig, resolveStoredApiKey } from "../lib/global-config.js";
 import { maybeSelfUpdate } from "../lib/autoupdate.js";
 import { getInstallId, sendTelemetryEvent } from "../lib/telemetry.js";
@@ -73,30 +74,8 @@ async function loadStoredSecrets(): Promise<void> {
   }
 }
 
-async function hasAiandApiKey(): Promise<boolean> {
-  try {
-    const home = process.env.HOME;
-    if (!home) {
-      return Boolean(process.env.AIAND_API_KEY?.trim());
-    }
-    const existing = resolveStoredApiKey((await readGlobalConfig(home)).apiKey);
-    return Boolean(existing || process.env.AIAND_API_KEY?.trim());
-  } catch {
-    return Boolean(process.env.AIAND_API_KEY?.trim());
-  }
-}
-
 async function ensureConfiguredForInteractiveLaunch(): Promise<boolean> {
-  if (await hasAiandApiKey()) {
-    return true;
-  }
-  if (!isInteractive()) {
-    return false;
-  }
-
-  const configured = await runConfigure();
-  await loadStoredSecrets();
-  return configured && (await hasAiandApiKey());
+  return ensureApiKeyInteractive({ home: os.homedir() });
 }
 
 async function runInteractiveLauncher(): Promise<void> {
@@ -263,20 +242,10 @@ async function main() {
 
   const invocation = resolveHarnessInvocation(parsed.positional, parsed.flags);
 
-  // First-run key setup only matters for the harness-launching commands.
-  if (
-    (invocation.command === "claude" ||
-      invocation.command === "codex" ||
-      invocation.command === "opencode" ||
-      invocation.command === "pi") &&
-    invocation.command !== undefined
-  ) {
+  if (isHarnessCommand(invocation.command)) {
     if (!(await ensureConfiguredForInteractiveLaunch())) {
       throw new Error("No ai& API key found. Run `aiandrelay configure` or set AIAND_API_KEY.");
     }
-  }
-
-  if (isHarnessCommand(invocation.command)) {
     void sendTelemetryEvent({ event: "cli_started", agent: invocation.command });
   }
 
