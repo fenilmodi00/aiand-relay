@@ -8,10 +8,12 @@ const docsUrl = "https://github.com/fenilmodi00/aiand-relay/blob/main/README.md"
 const aiandApiKeysUrl = "https://docs.aiand.com/";
 const llmsUrl = "/llms.txt";
 
+type AgentStatus = "Stable" | "Beta" | "Alpha";
+
 type Agent = {
   name: string;
   command: string;
-  status: "Stable" | "Beta";
+  status: AgentStatus;
   mark: ReactNode;
   blurb: string;
 };
@@ -66,6 +68,22 @@ const agents: Agent[] = [
       "Nous Research's Hermes Agent on ai&, with config under a relay-owned home. Your real ~/.hermes stays untouched.",
   },
   {
+    name: "DeepSeek Harness",
+    command: "adeepseek",
+    status: "Alpha",
+    mark: <DeepSeekMark />,
+    blurb:
+      "DeepSeek's cordis harness on ai& via a content-addressed YAML patch. Alpha — your native DEEPSEEK_API_KEY provider stays available if set.",
+  },
+  {
+    name: "Grok Build",
+    command: "agrok",
+    status: "Stable",
+    mark: <GrokMark />,
+    blurb:
+      "xAI's Grok Build UI driving ai& models (not Grok/xAI). Ephemeral catalog + isolated auth; image and voice surfaces stay off so the ai& key never hits api.x.ai.",
+  },
+  {
     name: "omp",
     command: "aomp",
     status: "Stable",
@@ -82,8 +100,8 @@ const steps = [
       <>
         Run the one-liner. It drops <code>aiandrelay</code> plus <code>aclaude</code>,{" "}
         <code>acodex</code>, <code>aopencode</code>, <code>api</code>, <code>aprime</code>,{" "}
-        <code>ahermes</code>, and <code>aomp</code> onto your PATH and installs Bun if you
-        don&apos;t have it.
+        <code>ahermes</code>, <code>adeepseek</code>, <code>agrok</code>, and <code>aomp</code>{" "}
+        onto your PATH and installs Bun if you don&apos;t have it.
       </>
     ),
   },
@@ -112,8 +130,8 @@ const steps = [
 
 const features = [
   {
-    title: "One relay, seven harnesses",
-    body: "Claude Code, Codex, OpenCode, Pi Code, Prime Agent, Hermes Agent, and omp all run on ai& open models through a single local install.",
+    title: "One relay, nine harnesses",
+    body: "Claude Code, Codex, OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp all run on ai& open models through a single local install.",
   },
   {
     title: "OpenAI-compatible upstream",
@@ -130,7 +148,7 @@ const features = [
 ];
 
 const stats = [
-  { value: "7", label: "coding agents" },
+  { value: "9", label: "coding agents" },
   { value: "1", label: "install command" },
   { value: "0", label: "config files rewritten" },
 ];
@@ -259,9 +277,9 @@ function Home() {
             </span>
           </h1>
           <p className="mx-auto mt-6 mb-9 max-w-[600px] text-pretty text-[18.5px] leading-relaxed text-muted">
-            A local relay that points Claude Code, Codex, OpenCode, Pi Code, and Prime Agent at open
-            models on ai&, including Kimi, Qwen, MiniMax, and DeepSeek V4, with short commands and
-            zero edits to your real tool config.
+            A local relay that points Claude Code, Codex, OpenCode, Pi, Prime, Hermes, DeepSeek,
+            Grok, and omp at open models on ai&, including Kimi, Qwen, MiniMax, and DeepSeek V4,
+            with short commands and zero edits to your real tool config.
           </p>
 
           {/* dark install card: the focal surface */}
@@ -396,7 +414,7 @@ function Home() {
                 Every agent.
               </h3>
               <p className="mt-4 max-w-[280px] text-[14.5px] leading-relaxed text-white/65">
-                One ai& key powers all five agents through a single local proxy. The model list is
+                One ai& key powers all nine agents through a single local install. The model list is
                 pulled live from ai&, with bundled fallbacks for new DeepSeek V4 models while
                 regional catalogs catch up.
               </p>
@@ -548,8 +566,9 @@ function SectionEyebrow({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
-function StatusBadge({ status }: Readonly<{ status: "Stable" | "Beta" }>) {
+function StatusBadge({ status }: Readonly<{ status: AgentStatus }>) {
   const stable = status === "Stable";
+  const label = status === "Stable" ? "Supported" : status;
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase"
@@ -562,7 +581,7 @@ function StatusBadge({ status }: Readonly<{ status: "Stable" | "Beta" }>) {
         className="size-1.5 rounded-full"
         style={{ background: stable ? "#7fae00" : "var(--color-violet)" }}
       />
-      {status === "Stable" ? "Supported" : "Beta"}
+      {label}
     </span>
   );
 }
@@ -736,6 +755,16 @@ function OmpMark() {
       <path fill="url(#omp-mark-gradient)" d="M10 14h44v9H43v33h-9V23h-9v22h-9V23H10z" />
     </svg>
   );
+}
+
+function DeepSeekMark() {
+  return (
+    <img src="/deepseek-color.svg" alt="" aria-hidden="true" className="size-[22px]" />
+  );
+}
+
+function GrokMark() {
+  return <img src="/grok.svg" alt="" aria-hidden="true" className="size-[22px]" />;
 }
 
 function CopyMark() {
