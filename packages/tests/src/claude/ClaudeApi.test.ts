@@ -217,6 +217,81 @@ describe("Claude proxy compatibility API", () => {
     expect(response.body).not.toContain("event: error");
   }, 2_500);
 
+  // A stream that emitted ONLY reasoning is still replay-safe: the client has
+  // seen no text and run no tool, so retrying cannot duplicate visible output or
+  // repeat a side effect. This is the common stall on reasoning models.
+  test("retries a stream that stalls after emitting only reasoning", async () => {
+    vi.stubEnv("AIANDRELAY_STREAM_IDLE_TIMEOUT_MS", "100");
+    vi.stubEnv("AIANDRELAY_STREAM_RETRIES", "1");
+    vi.stubEnv("AIANDRELAY_REQUEST_DIAGNOSTICS", "0");
+    const upstreamBodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        if (String(_url).includes("/api/telemetry") || init?.body === undefined) {
+          return new Response(null, { status: 204 });
+        }
+        upstreamBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+        return upstreamBodies.length === 1
+          ? // reasoning only, then hang
+            hangingSseResponse([{ choices: [{ delta: { reasoning_content: "thinking..." } }] }])
+          : sseResponse([
+              { choices: [{ delta: { content: "recovered after reasoning" } }] },
+              { choices: [{ finish_reason: "stop", delta: {} }] },
+            ]);
+      }),
+    );
+
+    const response = await callClaudeProxyRaw({
+      method: "POST",
+      url: "/v1/messages",
+      body: JSON.stringify({
+        model: GLM_5_2.anthropicAlias,
+        max_tokens: 64,
+        stream: true,
+        messages: [{ role: "user", content: "Say hi." }],
+      }),
+    });
+
+    expect(upstreamBodies).toHaveLength(2);
+    expect(response.status).toBe(200);
+    expect(response.body).toContain("recovered after reasoning");
+  }, 2_500);
+
+  // The inverse guard: once real text has reached the client, a stall must NOT
+  // be retried - replaying would duplicate user-visible output.
+  test("does NOT retry a stream that stalls after emitting text", async () => {
+    vi.stubEnv("AIANDRELAY_STREAM_IDLE_TIMEOUT_MS", "100");
+    vi.stubEnv("AIANDRELAY_STREAM_RETRIES", "1");
+    vi.stubEnv("AIANDRELAY_REQUEST_DIAGNOSTICS", "0");
+    const upstreamBodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        if (String(_url).includes("/api/telemetry") || init?.body === undefined) {
+          return new Response(null, { status: 204 });
+        }
+        upstreamBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+        return hangingSseResponse([{ choices: [{ delta: { content: "partial answer" } }] }]);
+      }),
+    );
+
+    const response = await callClaudeProxyRaw({
+      method: "POST",
+      url: "/v1/messages",
+      body: JSON.stringify({
+        model: GLM_5_2.anthropicAlias,
+        max_tokens: 64,
+        stream: true,
+        messages: [{ role: "user", content: "Say hi." }],
+      }),
+    });
+
+    // Exactly one upstream call: the retry was correctly suppressed.
+    expect(upstreamBodies).toHaveLength(1);
+    expect(response.body).toContain("partial answer");
+  }, 2_500);
+
   test("strips native web_search tools from buffered upstream requests", async () => {
     const upstreamBodies: Array<Record<string, unknown>> = [];
     vi.stubGlobal(
@@ -306,10 +381,11 @@ describe("Claude proxy compatibility API", () => {
         authToken: "local-token",
       });
 
-      expect(env.ANTHROPIC_MODEL).toBe(GLM_5_2.anthropicAlias);
+      expect(env.ANTHROPIC_MODEL).toBe(`${GLM_5_2.anthropicAlias}[1m]`);
       expect(env.ANTHROPIC_DEFAULT_HAIKU_MODEL).toBe(EXPECTED_HAIKU_MODEL_ID);
       expect(env.ANTHROPIC_DEFAULT_HAIKU_MODEL).not.toBe(GLM_5_2.anthropicAlias);
       expect(env.CLAUDE_CODE_MAX_OUTPUT_TOKENS).toBe("32000");
+      expect(env.CLAUDE_CODE_SIMPLE_SYSTEM_PROMPT).toBe("1");
     } finally {
       if (previous === undefined) {
         delete process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS;
@@ -1684,6 +1760,37 @@ function sseResponse(events: unknown[]): Response {
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
+      },
+    }),
+    {
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+    },
+  );
+}
+
+/**
+ * An SSE response that emits `chunks` and then hangs forever without closing -
+ * the shape of an upstream stream that stalls mid-turn, which is what the idle
+ * watchdog exists to catch.
+ *
+ * This helper was previously MISSING from this file while tests called it. The
+ * resulting ReferenceError rejected the mocked fetch, so those tests silently
+ * exercised the network-error retry path instead of the SSE idle path they
+ * describe. Defining it properly makes them test what they claim.
+ */
+function hangingSseResponse(chunks: unknown[] = []): Response {
+  const encoder = new TextEncoder();
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        for (const chunk of chunks) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+        }
+        // Deliberately never close: the reader must hit the idle timeout.
+      },
+      cancel() {
+        // The proxy cancels this stream once the idle timeout fires.
       },
     }),
     {

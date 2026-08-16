@@ -130,6 +130,10 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     name: "Kimi K3",
     anthropicAlias: "aiand-kimi-k3",
     outputLimit: 131_072,
+    // API may report a placeholder 8000. Kimi K3's real window is 1M tokens;
+    // without this floor harnesses compact far too early when the live catalog
+    // returns the placeholder.
+    minContext: 1_048_576,
     order: 20,
   },
   "motif-technologies/motif-3": {

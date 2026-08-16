@@ -8,6 +8,7 @@ import {
 } from "@aiandrelay/models";
 import { defaultWireReasoningEffort } from "../chat-wire.js";
 import { isNativeWebSearchToolType } from "../native-search-refuse.js";
+import { normalizeCompactionInput } from "./compaction.js";
 import { stringifyUnknown } from "./content-format.js";
 import type {
   ChatContentPart,
@@ -146,7 +147,10 @@ function toChatMessages(
       ...(reasoning ? { reasoning_content: reasoning } : {}),
     });
   };
-  for (const item of body.input ?? []) {
+  // Replay compaction checkpoints as readable text. A `compaction` item carries
+  // the summary in encrypted_content; left as-is the model would see an opaque
+  // blob and lose everything the checkpoint was meant to preserve.
+  for (const item of normalizeCompactionInput(body.input ?? [])) {
     if (item.type === "reasoning") {
       const reasoning = stringifyResponsesContent(item.content);
       if (reasoning) {

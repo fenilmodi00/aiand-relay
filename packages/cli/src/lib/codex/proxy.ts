@@ -7,6 +7,16 @@ import { readJsonBodyWithSize, requestPath, writeJson } from "../http-util.js";
 import { writeProxyDebugLog } from "../proxy-debug.js";
 import { applyEstimatedContextBudget } from "../claude/context-budget.js";
 import { recordAgentModel } from "../model-preferences.js";
+import {
+  CODEX_MODELS_PATH,
+  compactionResponse,
+  compactionSummary,
+  isCodexCompactPath,
+  isCodexCompactionRequest,
+  isCodexResponsesPath,
+  normalizeCodexPath,
+  toCompactionPayload,
+} from "./compaction.js";
 import { objectKeys } from "./content-format.js";
 import {
   resolveCodexRequestModel,
@@ -55,12 +65,12 @@ export async function handleCodexProxyRequest(
     return;
   }
 
-  if (req.method === "GET" && path === "/v1/models") {
+  if (req.method === "GET" && normalizeCodexPath(path) === CODEX_MODELS_PATH) {
     writeJson(res, 200, codexModelCatalog());
     return;
   }
 
-  if (req.method !== "POST" || path !== "/v1/responses") {
+  if (req.method !== "POST" || !isCodexResponsesPath(path)) {
     writeOpenAIError(
       res,
       404,
@@ -134,6 +144,31 @@ export async function handleCodexProxyRequest(
     toolCount: body.tools?.length ?? 0,
     tools: summarizeResponsesTools(body.tools),
   }));
+
+  // Compaction checkpoint: Codex is asking us to summarize the conversation,
+  // not continue it. Handle it before the normal turn paths - forwarding it as
+  // an ordinary request would send the whole history plus every tool schema and
+  // return an answer Codex cannot use as a checkpoint.
+  if (isCodexCompactionRequest(body) || isCodexCompactPath(path)) {
+    const compactionPayload = toCompactionPayload(translatedPayload, requestModel.definition);
+    debugLog(options, "codex compaction request", {
+      targetModel: requestModel.targetModelId,
+      maxTokens: compactionPayload.max_tokens,
+    });
+    const compactionChat = await perf.span("compaction_fetch", () =>
+      callAiandChat(compactionPayload, options, requestModel.definition, upstreamAbort.signal),
+    );
+    recordUsage(compactionChat.usage, options, requestModel.definition);
+    const summary = compactionSummary(compactionChat);
+    if (!summary) {
+      writeOpenAIError(res, 502, "api_error", "Compaction produced an empty summary.");
+      perf.end({ status: res.statusCode, stream: false });
+      return;
+    }
+    writeJson(res, 200, compactionResponse(summary, body.model ?? options.modelId));
+    perf.end({ status: res.statusCode, stream: false });
+    return;
+  }
 
   if (body.stream) {
     await perf.span("stream_response", () =>
