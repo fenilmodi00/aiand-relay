@@ -74,8 +74,11 @@ async function loadStoredSecrets(): Promise<void> {
   }
 }
 
-async function ensureConfiguredForInteractiveLaunch(): Promise<boolean> {
-  return ensureApiKeyInteractive({ home: os.homedir() });
+async function ensureConfiguredForInteractiveLaunch(apiKey?: string): Promise<boolean> {
+  return ensureApiKeyInteractive({
+    home: os.homedir(),
+    ...(apiKey !== undefined ? { apiKey } : {}),
+  });
 }
 
 async function runInteractiveLauncher(): Promise<void> {
@@ -226,7 +229,10 @@ async function main() {
   }
 
   if (command === "codex-app") {
-    if (!parsed.flags.restore && !(await ensureConfiguredForInteractiveLaunch())) {
+    if (
+      !parsed.flags.restore &&
+      !(await ensureConfiguredForInteractiveLaunch(parsed.flags.apiKey))
+    ) {
       throw new Error("No ai& API key found. Run `aiandrelay configure` or set AIAND_API_KEY.");
     }
     const { runCodexAppCommand } = await import("../lib/codex-app.js");
@@ -243,7 +249,7 @@ async function main() {
   const invocation = resolveHarnessInvocation(parsed.positional, parsed.flags);
 
   if (isHarnessCommand(invocation.command)) {
-    if (!(await ensureConfiguredForInteractiveLaunch())) {
+    if (!(await ensureConfiguredForInteractiveLaunch(parsed.flags.apiKey))) {
       throw new Error("No ai& API key found. Run `aiandrelay configure` or set AIAND_API_KEY.");
     }
     void sendTelemetryEvent({ event: "cli_started", agent: invocation.command });

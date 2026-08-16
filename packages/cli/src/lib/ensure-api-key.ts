@@ -73,8 +73,14 @@ export async function ensureApiKeyInteractive(options?: {
   interactive?: boolean;
   prompts?: EnsureApiKeyPrompts;
   openDocs?: (url: string) => Promise<boolean>;
+  apiKey?: string;
 }): Promise<boolean> {
   const home = options?.home ?? os.homedir();
+  const flagKey = options?.apiKey?.trim();
+  if (flagKey) {
+    process.env.AIAND_API_KEY = flagKey;
+    return true;
+  }
   if (await hasStoredOrEnvKey(home)) {
     // Ensure process env is populated from stored config for harness interpolation.
     if (!process.env.AIAND_API_KEY?.trim()) {

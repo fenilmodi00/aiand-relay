@@ -36,6 +36,21 @@ function mockPrompts(overrides: {
 }
 
 describe("ensureApiKeyInteractive", () => {
+  test("returns true without prompting when apiKey option is set", async () => {
+    const home = await tempHome();
+    vi.stubEnv("AIAND_API_KEY", "");
+    const prompts = mockPrompts({});
+    const ok = await ensureApiKeyInteractive({
+      home,
+      interactive: true,
+      prompts,
+      apiKey: "flag-key",
+    });
+    expect(ok).toBe(true);
+    expect(prompts.select).not.toHaveBeenCalled();
+    expect(process.env.AIAND_API_KEY).toBe("flag-key");
+  });
+
   test("returns true without prompting when AIAND_API_KEY is set", async () => {
     const home = await tempHome();
     vi.stubEnv("AIAND_API_KEY", "from-env");
