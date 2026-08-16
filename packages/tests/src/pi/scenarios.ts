@@ -95,7 +95,23 @@ export function piScenarios(): Scenario[] {
     {
       name: "pi: aiand model list includes multiple models and vision metadata",
       run: async (context) => {
-        const glmResult = await runCommand(context, "pi-model-list-glm-default", process.execPath, [
+        const defaultResult = await runCommand(
+          context,
+          "pi-model-list-deepseek-default",
+          process.execPath,
+          [context.cliBin, "pi", "--", "--list-models", "DeepSeek-V4-Flash"],
+        );
+        assert(defaultResult.status === 0, `exit ${defaultResult.status}`);
+        assert(
+          defaultResult.stdout.includes("deepseek-ai/deepseek-v4-flash"),
+          "missing registered default model",
+        );
+        assert(
+          !defaultResult.stderr.includes("Using custom model id"),
+          "default should be registered in Pi",
+        );
+
+        const glmResult = await runCommand(context, "pi-model-list-glm", process.execPath, [
           context.cliBin,
           "pi",
           "--",
@@ -103,11 +119,7 @@ export function piScenarios(): Scenario[] {
           "GLM-5.2",
         ]);
         assert(glmResult.status === 0, `exit ${glmResult.status}`);
-        assert(glmResult.stdout.includes("zai-org/glm-5.2"), "missing registered default model");
-        assert(
-          !glmResult.stderr.includes("Using custom model id"),
-          "default should be registered in Pi",
-        );
+        assert(glmResult.stdout.includes("zai-org/glm-5.2"), "missing registered GLM model");
 
         const result = await runCommand(context, "pi-model-list", process.execPath, [
           context.cliBin,

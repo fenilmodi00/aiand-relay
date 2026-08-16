@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { GLM_5_2 } from "@aiandrelay/models";
+import { DEEPSEEK_V4_FLASH } from "@aiandrelay/models";
 import { buildCodexAppConfig, codexAppModelCatalogJson } from "../../../cli/src/lib/codex-app.js";
 
 describe("Codex App alpha config", () => {
@@ -134,7 +134,7 @@ describe("Codex App alpha config", () => {
     const first = catalog.models[0];
 
     expect(first).toBeDefined();
-    expect(first?.display_name).toBe("GLM 5.2");
+    expect(first?.display_name).toBe("DeepSeek V4 Flash");
     expect(first?.shell_type).toBe("shell_command");
     // Reasoning models expose effort levels; non-reasoning models use "none".
     // Default to "minimal" (proxy maps it to no reasoning) so trivial turns stay
@@ -164,7 +164,7 @@ describe("Codex App alpha config", () => {
     // ai&'s server-side tokenizer rejects. See codex/catalog.ts.
     expect(first?.truncation_policy).toEqual({
       mode: "tokens",
-      limit: Math.floor(GLM_5_2.limit.context / 1.8),
+      limit: Math.floor(DEEPSEEK_V4_FLASH.limit.context / 1.8),
     });
     expect(first?.comp_hash).toBeNull();
     // model_messages MUST be an object (not null) so Codex Desktop can resolve

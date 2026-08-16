@@ -1,6 +1,6 @@
 # ai& Relay
 
-Run your local coding agents on [ai&](https://docs.aiand.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, **Prime Agent**, **Hermes Agent**, and **omp** all talk to open-weight models (GLM 5.2, Kimi K2.7 Code, Motif 3, DeepSeek V4, …) instead of their default backends.
+Run your local coding agents on [ai&](https://docs.aiand.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, **Prime Agent**, **Hermes Agent**, and **omp** all talk to open-weight models (DeepSeek V4 Flash, GLM 5.2, Kimi K2.7 Code, Motif 3, …) instead of their default backends.
 
 ```bash
 curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
@@ -71,7 +71,7 @@ acodex exec "add a test for the parser"
 
 ## Models
 
-Default chat model is `zai-org/glm-5.2`. Text failover defaults to `motif-technologies/motif-3`. Vision describe failover: `moonshotai/kimi-k2.7-code` → `moonshotai/kimi-k2.6` (if present) → `google/gemma-4-31b-it`. Run `scripts/list-aiand-models.mjs` (with `AIAND_API_KEY` set) to print the raw catalog ai& serves.
+Default chat model is `deepseek-ai/deepseek-v4-flash`. Text failover defaults to `motif-technologies/motif-3`. Vision describe failover: `moonshotai/kimi-k2.7-code` → `moonshotai/kimi-k2.6` (if present) → `google/gemma-4-31b-it`. Run `scripts/list-aiand-models.mjs` (with `AIAND_API_KEY` set) to print the raw catalog ai& serves.
 
 ## Web search
 

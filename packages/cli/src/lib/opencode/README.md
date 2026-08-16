@@ -61,7 +61,8 @@ past the picker's truncation width.
 
 | Model id                      | Vision | Use case                                |
 | ----------------------------- | ------ | --------------------------------------- |
-| `zai-org/glm-5.2`             | No     | default, agentic coding (text-only)     |
+| `deepseek-ai/deepseek-v4-flash` | No     | default, fast coding (text-only)        |
+| `zai-org/glm-5.2`             | No     | agentic coding (text-only)              |
 | `moonshotai/kimi-k2.6`        | Yes    | reasoning + vision                      |
 | `moonshotai/kimi-k2.7-code`   | Yes    | code; also the `@vision` subagent model |
 | `motif-technologies/motif-3`  | Yes    | cheapest vision, 512K context           |

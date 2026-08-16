@@ -102,11 +102,17 @@ type ModelOverride = {
  * (SPEC §13): kimi-k2.7-code → kimi-k2.6 → gemma-4-31b-it (skip missing).
  */
 const CURATED_OVERRIDES: Record<string, ModelOverride> = {
+  "deepseek-ai/deepseek-v4-flash": {
+    name: "DeepSeek V4 Flash",
+    anthropicAlias: "aiand-deepseek-v4-flash",
+    outputLimit: 384_000,
+    order: 0,
+  },
   "zai-org/glm-5.2": {
     name: "GLM 5.2",
     anthropicAlias: "aiand-glm-5-2",
     outputLimit: 164_000,
-    order: 0,
+    order: 5,
   },
   "moonshotai/kimi-k2.7-code": {
     name: "Kimi K2.7 Code · vision",
@@ -132,12 +138,6 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
     outputLimit: 65_536,
     order: 30,
   },
-  "deepseek-ai/deepseek-v4-flash": {
-    name: "DeepSeek V4 Flash",
-    anthropicAlias: "aiand-deepseek-v4-flash",
-    outputLimit: 384_000,
-    order: 40,
-  },
   "deepseek-ai/deepseek-v4-pro": {
     name: "DeepSeek V4 Pro",
     anthropicAlias: "aiand-deepseek-v4-pro",
@@ -161,7 +161,7 @@ const CURATED_OVERRIDES: Record<string, ModelOverride> = {
   },
 };
 
-export const DEFAULT_MODEL_ID = "zai-org/glm-5.2";
+export const DEFAULT_MODEL_ID = "deepseek-ai/deepseek-v4-flash";
 
 /** SPEC §13 vision failover order (skip missing / non-vision). */
 export const DEFAULT_VISION_MODEL_IDS = [

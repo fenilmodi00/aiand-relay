@@ -52,7 +52,7 @@ type OpencodeProviderConfig = {
 /**
  * Builds the inline OpenCode config passed via `OPENCODE_CONFIG_CONTENT`.
  * Registers ai& as a provider (generic `@ai-sdk/openai-compatible` adapter
- * pointed at ai&'s base URL) and defaults the model to GLM 5.2
+ * pointed at ai&'s base URL) and defaults the model to DeepSeek V4 Flash
  * with its full capability/cost/limit metadata. The key is resolved at runtime
  * via `{env:AIAND_API_KEY}` so no credential is written to disk (no
  * auth.json). The `build` agent's system prompt is overridden to drop OpenCode
@@ -84,7 +84,7 @@ export function buildOpencodeConfigJson({
     // would send ai& keys to the wrong host.)
     npm: "@ai-sdk/openai-compatible",
     // Provider label: OpenCode appends this provider `name` to every model
-    // line in the /models picker (e.g. "GLM 5.2 · default  ai&"). Kept
+    // line in the /models picker (e.g. "DeepSeek V4 Flash · default  ai&"). Kept
     // as the full brand name; the model display names are kept short so the
     // full suffix still fits without hitting the picker's truncation width
     // (opencode #20968).

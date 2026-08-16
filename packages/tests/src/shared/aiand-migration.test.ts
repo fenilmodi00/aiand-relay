@@ -31,6 +31,15 @@ describe("ai& catalog adapter", () => {
   it("builds models from capabilities / context_window / per-1M prices", () => {
     const rows: AiandApiModel[] = [
       {
+        id: "deepseek-ai/deepseek-v4-flash",
+        context_window: 1_048_576,
+        capabilities: ["reasoning", "tool_calling"],
+        reasoning_efforts: ["none", "high", "max"],
+        input_per_1m: "25",
+        output_per_1m: "40",
+        cached_input_per_1m: "10",
+      },
+      {
         id: "zai-org/glm-5.2",
         context_window: 1_048_576,
         capabilities: ["reasoning", "tool_calling"],
@@ -49,15 +58,19 @@ describe("ai& catalog adapter", () => {
       },
     ];
     const catalog = buildCatalog(rows);
-    expect(catalog.defaultModel.id).toBe("zai-org/glm-5.2");
+    expect(catalog.defaultModel.id).toBe("deepseek-ai/deepseek-v4-flash");
+    expect(catalog.byId.get("deepseek-ai/deepseek-v4-flash")?.cost.input).toBe(25);
+    expect(catalog.byId.get("deepseek-ai/deepseek-v4-flash")?.anthropicAlias).toBe(
+      "aiand-deepseek-v4-flash",
+    );
     expect(catalog.byId.get("zai-org/glm-5.2")?.cost.input).toBe(160);
-    expect(catalog.byId.get("zai-org/glm-5.2")?.anthropicAlias).toBe("aiand-glm-5-2");
     expect(catalog.vision[0]?.id).toBe("google/gemma-4-31b-it");
   });
 
-  it("ships snapshot with glm-5.2 default and curated vision order", () => {
+  it("ships snapshot with deepseek-v4-flash default and curated vision order", () => {
+    expect(DEEPSEEK_V4_FLASH.id).toBe("deepseek-ai/deepseek-v4-flash");
+    expect(SELECTABLE_MODELS[0]?.id).toBe("deepseek-ai/deepseek-v4-flash");
     expect(GLM_5_2.id).toBe("zai-org/glm-5.2");
-    expect(SELECTABLE_MODELS[0]?.id).toBe("zai-org/glm-5.2");
     expect(VISION_MODELS[0]?.id).toBe("moonshotai/kimi-k2.7-code");
     expect(MOTIF_3.id).toBe("motif-technologies/motif-3");
     expect(DEEPSEEK_V4_FLASH.anthropicAlias).toBe("aiand-deepseek-v4-flash");
@@ -130,7 +143,7 @@ describe("env loader", () => {
 describe("Claude stock tier remap", () => {
   it("maps haiku/sonnet/opus onto curated slots", () => {
     expect(remapClaudeStockTier("claude-haiku-4-5")?.definition.id).toBe(KIMI_K2_7_CODE.id);
-    expect(remapClaudeStockTier("claude-opus-4")?.definition.id).toBe(GLM_5_2.id);
+    expect(remapClaudeStockTier("claude-opus-4")?.definition.id).toBe(DEEPSEEK_V4_FLASH.id);
     expect(remapClaudeStockTier("claude-sonnet-4")?.definition.id).toBe(MOTIF_3.id);
     expect(resolveClaudeModel("aiand-glm-5-2").definition.id).toBe(GLM_5_2.id);
   });

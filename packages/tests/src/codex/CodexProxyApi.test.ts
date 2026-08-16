@@ -1,7 +1,13 @@
 import http from "node:http";
 import { asRecord } from "../shared/json-lines.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { GLM_5_2, MOTIF_3, GEMMA_4_31B, QWEN_3_6_27B } from "@aiandrelay/models";
+import {
+  DEEPSEEK_V4_FLASH,
+  GLM_5_2,
+  MOTIF_3,
+  GEMMA_4_31B,
+  QWEN_3_6_27B,
+} from "@aiandrelay/models";
 import {
   handleCodexProxyRequest,
   type CodexProxyOptions,
@@ -563,8 +569,8 @@ describe("Codex Responses proxy tool compatibility", () => {
     const catalog = await getModels();
     const first = catalog.models?.[0] as Record<string, unknown> | undefined;
 
-    expect(first?.slug).toBe("zai-org/glm-5.2");
-    expect(first?.display_name).toBe("GLM 5.2");
+    expect(first?.slug).toBe("deepseek-ai/deepseek-v4-flash");
+    expect(first?.display_name).toBe("DeepSeek V4 Flash");
     expect(first?.default_reasoning_level).toBe("minimal");
     expect(first?.default_reasoning_summary).toBe("auto");
     expect(first?.model_messages).toEqual(
@@ -574,7 +580,7 @@ describe("Codex Responses proxy tool compatibility", () => {
     );
     expect(first?.apply_patch_tool_type).toBe("freeform");
     expect(first).not.toHaveProperty("web_search_tool_type");
-    const expectedLimit = Math.floor(GLM_5_2.limit.context / 1.8);
+    const expectedLimit = Math.floor(DEEPSEEK_V4_FLASH.limit.context / 1.8);
     expect(first?.truncation_policy).toEqual({
       mode: "tokens",
       limit: expectedLimit,

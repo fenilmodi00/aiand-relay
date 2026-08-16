@@ -81,7 +81,7 @@ pnpm -F @aiandrelay/cli exec aiandrelay claude --help
 pnpm -F @aiandrelay/cli exec aiandrelay claude --version
 ```
 
-The Claude local proxy defaults to ai& GLM-5.2 (`zai-org/glm-5.2`) and can route Claude Code through any curated ai& model in the repo's shared model list.
+The Claude local proxy defaults to ai& DeepSeek V4 Flash (`deepseek-ai/deepseek-v4-flash`) and can route Claude Code through any curated ai& model in the repo's shared model list.
 Pick a backend for one launch:
 
 ```bash
