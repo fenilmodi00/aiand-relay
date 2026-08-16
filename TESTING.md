@@ -15,7 +15,7 @@ Use this loop:
 5. Run the focused test again, then the relevant typecheck/build.
 6. Re-run a live smoke using the user's original pattern when the bug depends on real Codex, Claude, OpenCode, Pi, or ai& behavior.
 
-For Codex proxy bugs, prefer `packages/tests/src/CodexProxyApi.test.ts` for deterministic protocol regressions before doing a live `acodex -- exec ...` smoke. Examples of patterns that need regression coverage:
+For Codex proxy bugs, prefer `packages/tests/src/codex/CodexProxyApi.test.ts` for deterministic protocol regressions before doing a live `acodex -- exec ...` smoke. Examples of patterns that need regression coverage:
 
 - parallel `multi_agent_v1` calls must stay in one assistant tool-call group before their tool outputs;
 - more than five parallel subagent calls must preserve all call IDs and outputs;
@@ -385,10 +385,10 @@ Build once, then run any harness test file:
 ```bash
 node_modules/.bin/tsc -p packages/cli/tsconfig.json
 chmod +x packages/cli/dist/bin/aiandrelay.js
-packages/tests/node_modules/.bin/vitest run --config packages/tests/vitest.config.ts packages/tests/src/Codex.test.ts
-packages/tests/node_modules/.bin/vitest run --config packages/tests/vitest.config.ts packages/tests/src/Claude.test.ts
-packages/tests/node_modules/.bin/vitest run --config packages/tests/vitest.config.ts packages/tests/src/OpenCode.test.ts
-packages/tests/node_modules/.bin/vitest run --config packages/tests/vitest.config.ts packages/tests/src/Pi.test.ts
+packages/tests/node_modules/.bin/vitest run --config packages/tests/vitest.config.ts packages/tests/src/codex/Codex.test.ts
+packages/tests/node_modules/.bin/vitest run --config packages/tests/vitest.config.ts packages/tests/src/claude/Claude.test.ts
+packages/tests/node_modules/.bin/vitest run --config packages/tests/vitest.config.ts packages/tests/src/opencode/OpenCode.test.ts
+packages/tests/node_modules/.bin/vitest run --config packages/tests/vitest.config.ts packages/tests/src/pi/Pi.test.ts
 ```
 
 Each run writes JSON artifacts to `packages/tests/artifacts/`, including stdout/stderr for every scenario. Longer coding-task scenarios create disposable Git repos under `packages/tests/tmp/` and remove them when the suite finishes.
@@ -407,7 +407,7 @@ Current scenarios cover:
 
 ## Live Models Check
 
-`packages/tests/src/livemodelscheck.test.ts` is the exhaustive real-inference model check. It is skipped by the normal suite unless `AIANDRELAY_LIVE_MODELS_CHECK=1` is set, because it launches real Claude Code and Codex CLI sessions and calls ai& for every curated model.
+`packages/tests/src/shared/livemodelscheck.test.ts` is the exhaustive real-inference model check. It is skipped by the normal suite unless `AIANDRELAY_LIVE_MODELS_CHECK=1` is set, because it launches real Claude Code and Codex CLI sessions and calls ai& for every curated model.
 
 Run it with:
 
