@@ -720,7 +720,12 @@ function HermesMark() {
 function OmpMark() {
   // Official omp π mark from https://omp.sh/favicon.svg (gradient path only).
   return (
-    <svg className="size-[22px]" viewBox="0 0 64 64" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      className="size-[22px]"
+      viewBox="0 0 64 64"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <defs>
         <linearGradient id="omp-mark-gradient" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#ed4abf" />

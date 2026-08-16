@@ -59,15 +59,15 @@ field. The provider label stays the full `ai&`, and the model names are
 kept short so the per-line provider suffix OpenCode appends does not push them
 past the picker's truncation width.
 
-| Model id                      | Vision | Use case                                |
-| ----------------------------- | ------ | --------------------------------------- |
+| Model id                        | Vision | Use case                                |
+| ------------------------------- | ------ | --------------------------------------- |
 | `deepseek-ai/deepseek-v4-flash` | No     | default, fast coding (text-only)        |
-| `zai-org/glm-5.2`             | No     | agentic coding (text-only)              |
-| `moonshotai/kimi-k2.6`        | Yes    | reasoning + vision                      |
-| `moonshotai/kimi-k2.7-code`   | Yes    | code; also the `@vision` subagent model |
-| `motif-technologies/motif-3`  | Yes    | cheapest vision, 512K context           |
-| `qwen/qwen3.6-27b`            | Yes    | strongest Qwen flagship                 |
-| `deepseek-ai/deepseek-v4-pro` | No     | long-context reasoning (512K)           |
+| `zai-org/glm-5.2`               | No     | agentic coding (text-only)              |
+| `moonshotai/kimi-k2.6`          | Yes    | reasoning + vision                      |
+| `moonshotai/kimi-k2.7-code`     | Yes    | code; also the `@vision` subagent model |
+| `motif-technologies/motif-3`    | Yes    | cheapest vision, 512K context           |
+| `qwen/qwen3.6-27b`              | Yes    | strongest Qwen flagship                 |
+| `deepseek-ai/deepseek-v4-pro`   | No     | long-context reasoning (512K)           |
 
 That's all users see in `/models`. The curated set lives in
 [`@aiandrelay/models`](../../../../models/src/index.ts) (`SELECTABLE_MODELS`).
