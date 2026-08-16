@@ -57,6 +57,14 @@ const agents: Agent[] = [
     blurb:
       "PrimeIntellect's RLM agent, with its persistent IPython tool and subagents running on ai& models. Your own Prime config stays untouched.",
   },
+  {
+    name: "Hermes Agent",
+    command: "ahermes",
+    status: "Beta",
+    mark: <HermesMark />,
+    blurb:
+      "Nous Research's Hermes Agent on ai&, with config under a relay-owned home. Your real ~/.hermes stays untouched.",
+  },
 ];
 
 const steps = [
@@ -65,8 +73,8 @@ const steps = [
     body: (
       <>
         Run the one-liner. It drops <code>aiandrelay</code> plus <code>aclaude</code>,{" "}
-        <code>acodex</code>, <code>aopencode</code>, <code>apiagent</code>, and <code>aprime</code>{" "}
-        onto your PATH and installs Bun if you don&apos;t have it.
+        <code>acodex</code>, <code>aopencode</code>, <code>apiagent</code>, <code>aprime</code>, and{" "}
+        <code>ahermes</code> onto your PATH and installs Bun if you don&apos;t have it.
       </>
     ),
   },
@@ -95,8 +103,8 @@ const steps = [
 
 const features = [
   {
-    title: "One relay, five harnesses",
-    body: "Claude Code, Codex, OpenCode, Pi Code, and Prime Agent all run on ai& open models through a single local install.",
+    title: "One relay, six harnesses",
+    body: "Claude Code, Codex, OpenCode, Pi Code, Prime Agent, and Hermes Agent all run on ai& open models through a single local install.",
   },
   {
     title: "OpenAI-compatible upstream",
@@ -675,6 +683,33 @@ function PrimeMark() {
         strokeWidth="1.7"
       />
       <rect x="10.75" y="10.75" width="2.5" height="2.5" rx="0.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+function HermesMark() {
+  // Caduceus-like twin arcs around a staff: Hermes without a trademark glyph.
+  return (
+    <svg className="size-[22px]" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 3v18"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 7c-3.2 0-5 1.6-5 3.2S8.8 13 12 13s5-1.2 5-2.8S15.2 7 12 7Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M12 11c-3.2 0-5 1.6-5 3.2S8.8 17 12 17s5-1.2 5-2.8S15.2 11 12 11Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
     </svg>
   );
 }

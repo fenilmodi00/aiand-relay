@@ -117,6 +117,7 @@ async function runInteractiveLauncher(): Promise<void> {
       { value: "claude", label: "Claude Code", hint: "aclaude" },
       { value: "pi", label: "Pi Code", hint: "apiagent" },
       { value: "opencode", label: "OpenCode", hint: "aopencode" },
+      { value: "hermes", label: "Hermes Agent", hint: "ahermes" },
       { value: "chatgpt", label: "ChatGPT Desktop", hint: "chatgpt" },
       { value: "configure", label: "Configure", hint: "API keys and detected tools" },
     ],

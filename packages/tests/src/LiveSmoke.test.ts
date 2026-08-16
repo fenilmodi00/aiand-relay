@@ -5,6 +5,7 @@ import { claudeScenarios } from "./harnesses/claude.js";
 import { codexScenarios } from "./harnesses/codex.js";
 import { opencodeScenarios } from "./harnesses/opencode.js";
 import { piScenarios } from "./harnesses/pi.js";
+import { hermesScenarios } from "./harnesses/hermes.js";
 import type { Scenario, TestContext } from "./types.js";
 
 const maybeDescribe = process.env.AIANDRELAY_LIVE_SMOKE === "1" ? describe : describe.skip;
@@ -46,6 +47,10 @@ function smokeScenarios(): Scenario[] {
     ...pickScenarios(piScenarios(), [
       "pi: basic streaming json response with cost",
       "pi: bash tool call with cost",
+    ]),
+    ...pickScenarios(hermesScenarios(), [
+      "hermes: basic oneshot chat reply",
+      "hermes: shell tool call prints cwd",
     ]),
   ];
 }

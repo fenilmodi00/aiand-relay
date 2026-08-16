@@ -18,8 +18,9 @@ Usage:
   aiandrelay pi [...]          (alias: apiagent)
   aiandrelay opencode [...]    (alias: aopencode)
   aiandrelay prime [...]       (alias: aprime)
+  aiandrelay hermes [...]      (alias: ahermes)
 
-Extra args after codex/claude/pi/opencode/prime are passed through.
+Extra args after codex/claude/pi/opencode/prime/hermes are passed through.
 ChatGPT App support is alpha; run \`aiandrelay chatgpt --restore\` (alias: codex-app) to restore the previous desktop config.
 
 Codex flags:
