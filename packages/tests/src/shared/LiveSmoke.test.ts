@@ -6,6 +6,7 @@ import { codexScenarios } from "../codex/scenarios.js";
 import { opencodeScenarios } from "../opencode/scenarios.js";
 import { piScenarios } from "../pi/scenarios.js";
 import { hermesScenarios } from "../hermes/scenarios.js";
+import { ompScenarios } from "../omp/scenarios.js";
 import type { Scenario, TestContext } from "./types.js";
 
 const maybeDescribe = process.env.AIANDRELAY_LIVE_SMOKE === "1" ? describe : describe.skip;
@@ -51,6 +52,10 @@ function smokeScenarios(): Scenario[] {
     ...pickScenarios(hermesScenarios(), [
       "hermes: basic oneshot chat reply",
       "hermes: shell tool call prints cwd",
+    ]),
+    ...pickScenarios(ompScenarios(), [
+      "omp: basic streaming json response with cost",
+      "omp: shell tool call with cost",
     ]),
   ];
 }

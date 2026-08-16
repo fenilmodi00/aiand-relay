@@ -102,6 +102,7 @@ const wrappers = [
   ["apiagent", ["pi"]],
   ["aprime", ["prime"]],
   ["ahermes", ["hermes"]],
+  ["aomp", ["omp"]],
 ];
 
 for (const [name, args] of wrappers) {

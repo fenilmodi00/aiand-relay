@@ -100,6 +100,7 @@ async function runInteractiveLauncher(): Promise<void> {
       { value: "pi", label: "Pi Code", hint: "apiagent" },
       { value: "opencode", label: "OpenCode", hint: "aopencode" },
       { value: "hermes", label: "Hermes Agent", hint: "ahermes" },
+      { value: "omp", label: "omp", hint: "aomp" },
       { value: "chatgpt", label: "ChatGPT Desktop", hint: "chatgpt" },
       { value: "configure", label: "Configure", hint: "API keys and detected tools" },
     ],

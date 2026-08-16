@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/run-vitest.mjs",
-    "test:offline": "vitest run --config vitest.config.ts --exclude '**/Claude.test.ts' --exclude '**/Codex.test.ts' --exclude '**/OpenCode.test.ts' --exclude '**/Pi.test.ts' --exclude '**/Hermes.test.ts' --exclude '**/livemodelscheck.test.ts' --exclude '**/daemon-session-auth.test.ts' --exclude '**/LiveSmoke.test.ts' --exclude '**/LiveCodexResume.test.ts'",
+    "test:offline": "vitest run --config vitest.config.ts --exclude '**/Claude.test.ts' --exclude '**/Codex.test.ts' --exclude '**/OpenCode.test.ts' --exclude '**/Pi.test.ts' --exclude '**/Hermes.test.ts' --exclude '**/Omp.test.ts' --exclude '**/livemodelscheck.test.ts' --exclude '**/daemon-session-auth.test.ts' --exclude '**/LiveSmoke.test.ts' --exclude '**/LiveCodexResume.test.ts'",
     "test:live-smoke": "node scripts/run-vitest.mjs --set AIANDRELAY_LIVE_SMOKE=1 -- src/shared/LiveSmoke.test.ts",
     "test:live-codex-resume": "node scripts/run-vitest.mjs --set AIANDRELAY_LIVE_CODEX_RESUME=1 --set VITEST_FILE_PARALLELISM=0 -- src/codex/LiveCodexResume.test.ts",
     "test:live-models-check": "node scripts/run-vitest.mjs --set AIANDRELAY_LIVE_MODELS_CHECK=1 -- src/shared/livemodelscheck.test.ts",
@@ -14,6 +14,7 @@
     "test:opencode": "node scripts/run-vitest.mjs src/opencode/OpenCode.test.ts",
     "test:pi": "node scripts/run-vitest.mjs src/pi/Pi.test.ts",
     "test:hermes": "node scripts/run-vitest.mjs src/hermes/Hermes.test.ts",
+    "test:omp": "node scripts/run-vitest.mjs src/omp/Omp.test.ts",
     "test:gauntlet:core": "vitest run --config vitest.config.ts src/codex/CodexProxyApi.test.ts src/claude/ClaudeApi.test.ts src/shared/livemodelscheck.test.ts src/codex/codex-app.test.ts src/daemon/harness-invocation.test.ts src/claude/vision.test.ts src/daemon/daemon-state.test.ts src/daemon/daemon-app-registration.test.ts src/shared/model-resolver.test.ts src/shared/LiveSmoke.test.ts src/shared/command.test.ts src/shared/telemetry.test.ts src/codex/codex-exec.test.ts",
     "test:gauntlet:claude": "vitest run --config vitest.config.ts src/claude/Claude.test.ts",
     "test:gauntlet:codex": "vitest run --config vitest.config.ts src/codex/Codex.test.ts",
@@ -21,6 +22,7 @@
     "test:gauntlet:opencode": "vitest run --config vitest.config.ts src/opencode/OpenCode.test.ts",
     "test:gauntlet:pi": "vitest run --config vitest.config.ts src/pi/Pi.test.ts",
     "test:gauntlet:hermes": "vitest run --config vitest.config.ts src/hermes/Hermes.test.ts",
+    "test:gauntlet:omp": "vitest run --config vitest.config.ts src/omp/Omp.test.ts",
     "bench:proxy": "pnpm -F @aiandrelay/cli build && pnpm exec vitest run --config vitest.bench.config.ts benchmarks/proxy-performance.bench.ts --reporter verbose",
     "capture:proxy-fixtures": "pnpm -F @aiandrelay/cli build && node scripts/capture-proxy-fixtures.mjs"
   },

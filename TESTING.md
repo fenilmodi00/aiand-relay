@@ -149,6 +149,45 @@ pnpm -F @aiandrelay/cli exec aiandrelay pi -p "Say hi"
 apiagent -p "Say hi"
 ```
 
+### omp (Oh My Pi)
+
+omp is a dedicated spawned harness (not entangled with Pi). `aiandrelay omp` writes an omp-native `models.yml` into a persistent relay-owned agent dir (`~/.aiandrelay/omp` via `PI_CODING_AGENT_DIR`), forces provider/model onto ai&, and leaves the user's personal `~/.omp` untouched. Named profiles ignore `PI_CODING_AGENT_DIR`; relay launches assume default-profile semantics.
+
+Install omp first (`bun install -g @oh-my-pi/pi-coding-agent`, or `curl -fsSL https://omp.sh/install | sh`, or on Windows `irm https://omp.sh/install.ps1 | iex`).
+
+Launch omp through ai&:
+
+```bash
+export AIAND_API_KEY="..."
+
+pnpm -F @aiandrelay/cli exec aiandrelay omp
+aomp
+```
+
+Headless JSON smoke (positional prompt; `-p`/`--print` is a boolean):
+
+```bash
+pnpm -F @aiandrelay/cli exec aiandrelay omp -- \
+  --mode json --print --no-session --no-tools \
+  "Reply with exactly: hi"
+```
+
+Tool-enabled smoke:
+
+```bash
+pnpm -F @aiandrelay/cli exec aiandrelay omp -- \
+  --mode json --print --no-session \
+  'Print the current working directory using a shell command, then answer with that path only.'
+```
+
+Model catalog check (`omp models`, not `--list-models`):
+
+```bash
+pnpm -F @aiandrelay/cli exec aiandrelay omp -- models find kimi
+```
+
+Confirm relay state lives under `~/.aiandrelay/omp` and personal `~/.omp` is not rewritten. Live suite: `pnpm -F @aiandrelay/tests test:omp` / `test:gauntlet:omp`.
+
 ## Claude Code Headless Smoke Tests
 
 Claude support must be tested headlessly before testing the interactive UI. Headless mode makes proxy failures reproducible and prints a JSON result.
@@ -404,6 +443,7 @@ Current scenarios cover:
 - Codex reasoning-stream usage (`reasoning_output_tokens > 0`).
 - Lighter OpenCode coverage for basic streaming, bash tools, and context pressure.
 - Pi Code coverage for streaming JSON, bash tool calls, usage/cost accounting, and ai& model-list vision metadata.
+- omp coverage for streaming JSON, shell tool calls, and `omp models` catalog/vision metadata (dedicated suite; not shared with Pi).
 
 ## Live Models Check
 

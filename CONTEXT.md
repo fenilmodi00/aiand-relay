@@ -17,16 +17,17 @@ architecturally distinct families (recorded as `ProxiedHarness` and
   daemon's ai& client, tracks cost via a `CostTracker`, and deregisters on
   exit. The shared lifecycle lives in `runProxiedSession`
   (`packages/cli/src/lib/proxied-session.ts`).
-- **Spawned harness** - OpenCode, Pi, Prime, Hermes. `run` spawns the agent binary
+- **Spawned harness** - OpenCode, Pi, Prime, Hermes, omp. `run` spawns the agent binary
   directly; the binary's own provider plugin talks to ai& (OpenCode), reads a
-  `models.json` from disk (Pi / Prime), or a relay-owned `config.yaml` under
-  `HERMES_HOME` (Hermes). No daemon, no proxy, no `CostTracker`, no keepalive.
+  `models.json` from disk (Pi / Prime), a relay-owned `config.yaml` under
+  `HERMES_HOME` (Hermes), or a relay-owned `models.yml` under `PI_CODING_AGENT_DIR`
+  (omp). No daemon, no proxy, no `CostTracker`, no keepalive.
 
 **Harness** - anything that adapts one agent CLI to ai& Relay. _Avoid:_
 integration, connector.
 
 **HarnessId** - the enum of harness identifiers (`claude`, `codex`, `opencode`,
-`pi`, `prime`, `hermes`). Note: the daemon also knows about `codex-app`, a
+`pi`, `prime`, `hermes`, `omp`). Note: the daemon also knows about `codex-app`, a
 seventh agent id not in `HarnessId` - an orphan to be reconciled.
 
 ## The daemon seam

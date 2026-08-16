@@ -20,6 +20,8 @@ on:
           - live-models-check
           - opencode
           - pi
+          - hermes
+          - omp
 
 concurrency:
   group: live-agent-gauntlet-${{ github.ref }}
@@ -114,6 +116,15 @@ jobs:
               npm install -g @earendil-works/pi-coding-agent
               pi --version
               ;;
+            hermes)
+              curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+              hermes --version || true
+              ;;
+            omp)
+              # omp prefers Bun >=1.3.14; install via npm package when Bun is present.
+              npm install -g @oh-my-pi/pi-coding-agent || bun install -g @oh-my-pi/pi-coding-agent
+              omp --version || true
+              ;;
             *)
               echo "Unknown harness: $HARNESS" >&2
               exit 1
@@ -146,6 +157,12 @@ jobs:
               ;;
             pi)
               pnpm exec turbo run test:gauntlet:pi --filter @aiandrelay/tests
+              ;;
+            hermes)
+              pnpm exec turbo run test:gauntlet:hermes --filter @aiandrelay/tests
+              ;;
+            omp)
+              pnpm exec turbo run test:gauntlet:omp --filter @aiandrelay/tests
               ;;
             *)
               echo "Unknown harness: $HARNESS" >&2

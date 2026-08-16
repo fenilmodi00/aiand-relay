@@ -1,7 +1,7 @@
 {
   "name": "@aiandrelay/cli",
   "version": "0.10.1",
-  "description": "CLI for routing Claude Code, OpenCode, Codex, and Pi Code through ai&",
+  "description": "CLI for routing Claude Code, OpenCode, Codex, Pi Code, Prime Agent, Hermes Agent, and omp through ai&",
   "license": "MIT",
   "bin": {
     "aiandrelay": "./dist/bin/aiandrelay.js"

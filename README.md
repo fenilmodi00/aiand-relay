@@ -1,6 +1,6 @@
 # ai& Relay
 
-Run your local coding agents on [ai&](https://docs.aiand.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, and **Prime Agent** all talk to open-weight models (GLM 5.2, Kimi K2.7 Code, Motif 3, DeepSeek V4, …) instead of their default backends.
+Run your local coding agents on [ai&](https://docs.aiand.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, **Prime Agent**, **Hermes Agent**, and **omp** all talk to open-weight models (GLM 5.2, Kimi K2.7 Code, Motif 3, DeepSeek V4, …) instead of their default backends.
 
 ```bash
 curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
@@ -19,13 +19,13 @@ aiandrelay claude     # Claude Code on ai& models (alias: aclaude)
 ai& serves open models over an OpenAI-compatible API. It does **not** speak the Anthropic Messages API (Claude Code) or the OpenAI Responses API (Codex). ai& Relay runs a small local daemon that translates those wire formats to ai& `/chat/completions` on the fly, so your agent believes it is talking to its native backend while every token is served by ai&.
 
 - **Proxied harnesses** (Claude Code, Codex): a local daemon translates each request/response, tracks cost, retries transient failures, trims context to fit, and refuses native web_search server tools with a clear error.
-- **Spawned harnesses** (OpenCode, Pi, Prime Agent): launched with a generated provider config pointed at ai&, no proxy needed (they already speak ai&'s OpenAI-compatible format).
+- **Spawned harnesses** (OpenCode, Pi, Prime Agent, Hermes Agent, omp): launched with a generated provider config pointed at ai&, no proxy needed (they already speak ai&'s OpenAI-compatible format).
 
 Nothing about your agent install changes. The relay injects a base URL and API key per session and writes nothing permanent to your agent's config.
 
 ## Install
 
-The one-liner installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `apiagent`, and `aprime` commands to `~/.aiandrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
+The one-liner installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `apiagent`, `aprime`, `ahermes`, and `aomp` commands to `~/.aiandrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
 
 ```bash
 curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
@@ -57,6 +57,8 @@ aiandrelay codex        # alias: acodex
 aiandrelay opencode     # alias: aopencode
 aiandrelay pi           # alias: apiagent
 aiandrelay prime        # alias: aprime  (PrimeIntellect Prime Agent)
+aiandrelay hermes       # alias: ahermes (Nous Research Hermes Agent)
+aiandrelay omp          # alias: aomp    (Oh My Pi)
 aiandrelay chatgpt      # alpha: ChatGPT Desktop session with restore (alias: codex-app)
 ```
 

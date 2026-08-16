@@ -6,7 +6,7 @@
 # Installs the aiandrelay CLI as a Bun-target JS bundle at
 # ~/.aiandrelay/bin/aiandrelay.js, with a `aiandrelay` wrapper script on
 # PATH that runs it with `bun`. Installs Bun for the user if `bun` isn't on
-# PATH. Also installs `aclaude`, `aopencode`, `acodex`, `apiagent`, `aprime`, and `ahermes`
+# PATH. Also installs `aclaude`, `aopencode`, `acodex`, `apiagent`, `aprime`, `ahermes`, and `aomp`
 # convenience wrappers.
 #
 # After install, the CLI prompts once for an ai& API key on first use
@@ -66,7 +66,7 @@ exec bun "$BIN_DIR/aiandrelay.js" "\$@"
 EOF
 chmod +x "$BIN_DIR/aiandrelay"
 
-# Short aliases: aclaude / aopencode / acodex / apiagent / aprime / ahermes
+# Short aliases: aclaude / aopencode / acodex / apiagent / aprime / ahermes / aomp
 cat > "$BIN_DIR/aclaude" <<EOF
 #!/usr/bin/env sh
 exec bun "$BIN_DIR/aiandrelay.js" claude "\$@"
@@ -103,7 +103,13 @@ exec bun "$BIN_DIR/aiandrelay.js" hermes "\$@"
 EOF
 chmod +x "$BIN_DIR/ahermes"
 
-ok "Wrappers installed: aiandrelay, aclaude, aopencode, acodex, apiagent, aprime, ahermes → $BIN_DIR"
+cat > "$BIN_DIR/aomp" <<EOF
+#!/usr/bin/env sh
+exec bun "$BIN_DIR/aiandrelay.js" omp "\$@"
+EOF
+chmod +x "$BIN_DIR/aomp"
+
+ok "Wrappers installed: aiandrelay, aclaude, aopencode, acodex, apiagent, aprime, ahermes, aomp → $BIN_DIR"
 
 # Remove old aiandrelay-owned wrappers that used the upstream agent names.
 # Current installs must never shadow `claude`, `codex`, or `opencode`; users
@@ -192,6 +198,7 @@ if LINK_DIR="$(find_writable_path_dir)"; then
   install_link apiagent "$BIN_DIR/apiagent"
   install_link aprime "$BIN_DIR/aprime"
   install_link ahermes "$BIN_DIR/ahermes"
+  install_link aomp "$BIN_DIR/aomp"
   if [ "$links_changed" -gt 0 ]; then
     ok "Linked $links_changed command(s) into current PATH → $LINK_DIR"
   fi

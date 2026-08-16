@@ -5,6 +5,7 @@ export const HARNESS = {
   PI: "pi",
   PRIME: "prime",
   HERMES: "hermes",
+  OMP: "omp",
 } as const;
 
 export type HarnessId = (typeof HARNESS)[keyof typeof HARNESS];
@@ -16,6 +17,7 @@ export const ALL_HARNESSES = [
   HARNESS.PI,
   HARNESS.PRIME,
   HARNESS.HERMES,
+  HARNESS.OMP,
 ] as const;
 
 // The CLI binary each harness ships, used for `which`-based detection.
@@ -26,6 +28,7 @@ export const HARNESS_BIN: Record<HarnessId, string> = {
   [HARNESS.PI]: "pi",
   [HARNESS.PRIME]: "prime-agent",
   [HARNESS.HERMES]: "hermes",
+  [HARNESS.OMP]: "omp",
 };
 
 export const HARNESS_LABEL: Record<HarnessId, string> = {
@@ -35,6 +38,7 @@ export const HARNESS_LABEL: Record<HarnessId, string> = {
   [HARNESS.PI]: "Pi Code",
   [HARNESS.PRIME]: "Prime Agent",
   [HARNESS.HERMES]: "Hermes Agent",
+  [HARNESS.OMP]: "omp",
 };
 
 export const HARNESS_INSTALL: Record<HarnessId, { command: string; url: string }> = {
@@ -61,5 +65,10 @@ export const HARNESS_INSTALL: Record<HarnessId, { command: string; url: string }
   [HARNESS.HERMES]: {
     command: "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash",
     url: "https://hermes-agent.nousresearch.com/docs/getting-started/installation",
+  },
+  [HARNESS.OMP]: {
+    command:
+      "bun install -g @oh-my-pi/pi-coding-agent (macOS/Linux: curl -fsSL https://omp.sh/install | sh; Windows: irm https://omp.sh/install.ps1 | iex)",
+    url: "https://omp.sh/",
   },
 };
