@@ -100,8 +100,8 @@ const steps = [
       <>
         Run the one-liner. It drops <code>aiandrelay</code> plus <code>aclaude</code>,{" "}
         <code>acodex</code>, <code>aopencode</code>, <code>api</code>, <code>aprime</code>,{" "}
-        <code>ahermes</code>, <code>adeepseek</code>, <code>agrok</code>, and <code>aomp</code>{" "}
-        onto your PATH and installs Bun if you don&apos;t have it.
+        <code>ahermes</code>, <code>adeepseek</code>, <code>agrok</code>, and <code>aomp</code> onto
+        your PATH and installs Bun if you don&apos;t have it.
       </>
     ),
   },
@@ -758,9 +758,7 @@ function OmpMark() {
 }
 
 function DeepSeekMark() {
-  return (
-    <img src="/deepseek-color.svg" alt="" aria-hidden="true" className="size-[22px]" />
-  );
+  return <img src="/deepseek-color.svg" alt="" aria-hidden="true" className="size-[22px]" />;
 }
 
 function GrokMark() {

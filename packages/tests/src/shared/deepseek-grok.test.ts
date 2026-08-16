@@ -51,9 +51,7 @@ describe("grok catalog and credential safety", () => {
     const catalog = buildGrokModelCatalog("https://api.aiand.com/v1");
     expect(catalog.object).toBe("list");
     expect(catalog.data.length).toBeGreaterThan(0);
-    expect(catalog.data.every((entry) => entry.base_url === "https://api.aiand.com/v1")).toBe(
-      true,
-    );
+    expect(catalog.data.every((entry) => entry.base_url === "https://api.aiand.com/v1")).toBe(true);
     expect(catalog.data.every((entry) => entry.api_backend === "chat_completions")).toBe(true);
   });
 

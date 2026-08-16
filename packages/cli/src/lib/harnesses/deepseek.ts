@@ -42,9 +42,7 @@ export default defineHarness({
     const child = spawnBinary(launch.binary, launch.args, { env: launch.env, stdio: "inherit" });
     const result = await new Promise<{ status: number | null }>((resolve) => {
       child.on("error", (err) => {
-        process.stderr.write(
-          `ai& Relay ▸ Failed to launch ${launch.binary}: ${err.message}.\n`,
-        );
+        process.stderr.write(`ai& Relay ▸ Failed to launch ${launch.binary}: ${err.message}.\n`);
         resolve({ status: 1 });
       });
       child.on("exit", (status) => resolve({ status }));

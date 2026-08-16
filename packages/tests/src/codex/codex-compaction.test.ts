@@ -13,7 +13,10 @@ import {
   normalizeCompactionInput,
   toCompactionPayload,
 } from "../../../cli/src/lib/codex/compaction.js";
-import type { ResponsesInputItem, ResponsesRequest } from "../../../cli/src/lib/codex/wire-types.js";
+import type {
+  ResponsesInputItem,
+  ResponsesRequest,
+} from "../../../cli/src/lib/codex/wire-types.js";
 
 function request(input: ResponsesInputItem[]): ResponsesRequest {
   return { model: GLM_5_2.id, input } as ResponsesRequest;
