@@ -1,0 +1,288 @@
+import {
+  CLAUDE_HAIKU_MODEL_SELECTION,
+  CLAUDE_MODEL_CAPABILITIES,
+  CLAUDE_SECONDARY_MODEL_SELECTION,
+  getClaudeSupportedModels,
+  resolveClaudeModel,
+  type ClaudeModelSelection,
+} from "./defaults.js";
+import {} from "../daemon/launch.js";
+import { runProxiedSession, type ProxiedSessionResult } from "../proxied-session.js";
+
+const CONFLICTING_ENV_KEYS = [
+  "ANTHROPIC_API_KEY",
+  "ANTHROPIC_AUTH_TOKEN",
+  "CLAUDE_CODE_OAUTH_TOKEN",
+  "ANTHROPIC_MODEL",
+  "ANTHROPIC_DEFAULT_OPUS_MODEL",
+  "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME",
+  "ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION",
+  "ANTHROPIC_CUSTOM_MODEL_OPTION",
+  "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME",
+  "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION",
+  "ANTHROPIC_CUSTOM_MODEL_OPTION_SUPPORTED_CAPABILITIES",
+] as const;
+
+// Preserve Claude Code's native 32k cumulative-output guard. ai& Relay
+// independently caps ordinary upstream turns at 28k, while compaction keeps
+// the full budget requested by Claude Code.
+const DEFAULT_CLAUDE_CODE_MAX_OUTPUT_TOKENS = 32_000;
+
+export type ClaudeLaunchOptions = {
+  apiKey: string;
+  baseUrl: string;
+  modelId?: string;
+  args?: string[];
+};
+
+export type ClaudeLaunchResult = {
+  status: number | null;
+  signal: NodeJS.Signals | null;
+};
+
+export function buildClaudeEnv({
+  apiKey,
+  modelId,
+  proxyUrl,
+  authToken,
+}: ClaudeLaunchOptions & {
+  modelId: string;
+  modelName: string;
+  proxyUrl: string;
+  authToken: string;
+}): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of CONFLICTING_ENV_KEYS) {
+    delete env[key];
+  }
+  env.ANTHROPIC_BASE_URL = proxyUrl;
+  // Use bearer-token mode for local proxy auth. Claude Code treats
+  // ANTHROPIC_API_KEY as a user-supplied provider key and prompts about it;
+  // ANTHROPIC_AUTH_TOKEN still sends Authorization: Bearer <token> to our
+  // local daemon without entering that custom-key flow.
+  env.ANTHROPIC_AUTH_TOKEN = authToken;
+  env.CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY = "1";
+  env.ANTHROPIC_MODEL = modelId;
+  // Claude Code disables tool search automatically when ANTHROPIC_BASE_URL is
+  // customized unless the feature is explicitly enabled. aiandrelay forwards
+  // the required tool_reference blocks, so opt in by default. Preserve
+  // true/false/auto:N overrides from the user.
+  if (!env.ENABLE_TOOL_SEARCH?.trim()) {
+    env.ENABLE_TOOL_SEARCH = "true";
+  }
+  if (env.CLAUDE_CODE_MAX_OUTPUT_TOKENS === undefined) {
+    env.CLAUDE_CODE_MAX_OUTPUT_TOKENS = String(DEFAULT_CLAUDE_CODE_MAX_OUTPUT_TOKENS);
+  }
+  applyClaudeModelMenuEnv(env, modelId);
+
+  // Disable Claude Code's periodic "How is Claude doing this session?" survey.
+  // It's an internal TUI prompt (not a request the proxy could intercept), and
+  // its rating rides on Anthropic's telemetry channel - which bypasses our proxy
+  // entirely, so it can't be captured. Default to off; only respect an explicit
+  // user opt-in (e.g. "1" re-enables). Uses the targeted kill switch rather than
+  // DISABLE_TELEMETRY so we don't also suppress error reporting / auto-updater.
+  if (env.CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY === undefined) {
+    env.CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY = "1";
+  }
+
+  // Disable `/feedback`: it posts transcripts to Anthropic (not ANTHROPIC_BASE_URL).
+  // Default off; respect an explicit "0"/"" opt-in.
+  if (env.DISABLE_FEEDBACK_COMMAND === undefined) {
+    env.DISABLE_FEEDBACK_COMMAND = "1";
+  }
+  return env;
+}
+
+function applyClaudeModelMenuEnv(env: NodeJS.ProcessEnv, selectedAlias: string): void {
+  const selected = resolveClaudeModel(selectedAlias);
+  const supported = getClaudeSupportedModels();
+  const defaultModel = supported[0] ?? selected;
+
+  setTierModelEnv(env, "OPUS", defaultModel);
+  setTierModelEnv(env, "SONNET", CLAUDE_SECONDARY_MODEL_SELECTION);
+  setTierModelEnv(env, "HAIKU", CLAUDE_HAIKU_MODEL_SELECTION);
+
+  // Claude Code currently exposes a single generic custom-model slot in
+  // addition to the three tier slots. Point that at the selected backend so a
+  // `--main aiand-kimi-k2-7-code` launch also marks Kimi as the custom row.
+  env.ANTHROPIC_CUSTOM_MODEL_OPTION = selected.alias;
+  env.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME = selected.definition.name;
+  env.ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION = "Local Anthropic-to-ai& proxy";
+  env.ANTHROPIC_CUSTOM_MODEL_OPTION_SUPPORTED_CAPABILITIES = CLAUDE_MODEL_CAPABILITIES;
+}
+
+function setTierModelEnv(
+  env: NodeJS.ProcessEnv,
+  tier: "OPUS" | "SONNET" | "HAIKU",
+  model: ClaudeModelSelection,
+): void {
+  const prefix = `ANTHROPIC_DEFAULT_${tier}_MODEL`;
+  env[prefix] = model.alias;
+  env[`${prefix}_NAME`] = model.definition.name;
+  env[`${prefix}_DESCRIPTION`] = `ai& (${model.definition.name}) via aiandrelay - not Anthropic`;
+}
+
+export async function runClaudeAiand(options: ClaudeLaunchOptions): Promise<ClaudeLaunchResult> {
+  const args = options.args ?? [];
+  const selectedModel = resolveClaudeModel(options.modelId);
+  const result: ProxiedSessionResult = await runProxiedSession({
+    agent: "claude",
+    apiKey: options.apiKey,
+    baseUrl: options.baseUrl,
+    modelId: selectedModel.alias,
+    registrationModelId: selectedModel.alias,
+    targetModelId: selectedModel.definition.id,
+    modelName: selectedModel.definition.name,
+    modelDefinition: selectedModel.definition,
+    extraRegistration: {
+      claudeCodeMaxOutputTokens: claudeCodeMaxOutputTokensFromEnv(
+        process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS,
+      ),
+      claudeCodeMaxOutputTokensUserSet: process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS !== undefined,
+    },
+    args,
+    binary: "claude",
+    keepaliveLabel: "Claude session",
+    preserveSessionAfterExit: claudeRunsInBackground(args),
+    banner: (modelName) => `ai& Relay ▸ Routing Claude Code → ai& (${modelName}). Not Anthropic.\n`,
+    buildEnv: ({ proxyUrl, authToken, modelId, modelName }) =>
+      buildClaudeEnv({ ...options, modelId, modelName, proxyUrl, authToken }),
+    buildArgs: ({ args: launchArgs, authToken }) => buildClaudeLaunchArgs(launchArgs, authToken),
+  });
+  return result;
+}
+
+/**
+ * True when Claude Code will keep running after the foreground process exits -
+ * `--bg`/`--background` hand off to a detached worker that keeps calling our
+ * proxy, so the daemon session must survive the foreground exit.
+ */
+export function claudeRunsInBackground(args: string[]): boolean {
+  return args.some((arg) => arg === "--bg" || arg === "--background");
+}
+
+export function buildClaudeLaunchArgs(args: string[], authToken?: string): string[] {
+  return [
+    ...claudeArgsWithoutModelOverrides(args),
+    ...claudeCacheFriendlyArgs(args),
+    ...claudeEffortArgs(args),
+    ...claudeExtraSettingsArgs(args, authToken),
+  ];
+}
+
+// Because aiandrelay advertises effort capabilities for GLM-5.2, Claude Code
+// shows its `/effort` selector (often defaulting to "medium" in the UI).
+// Product default is wire `reasoning_effort: "none"` via chat-wire. Claude
+// CLI has no `--effort none`, so do not inject `--effort low` — only inject
+// when AIANDRELAY_REASONING_EFFORT names a Claude-accepted level.
+// Respect an explicit --effort / -p (headless already wires none).
+function claudeEffortArgs(args: string[]): string[] {
+  for (const arg of args) {
+    if (arg === "--effort" || arg.startsWith("--effort=")) {
+      return [];
+    }
+    if (arg === "-p" || arg === "--print") {
+      return [];
+    }
+  }
+  const env = process.env.AIANDRELAY_REASONING_EFFORT?.trim().toLowerCase();
+  if (env === "medium" || env === "high" || env === "xhigh" || env === "max" || env === "low") {
+    return ["--effort", env];
+  }
+  return [];
+}
+
+function claudeCodeMaxOutputTokensFromEnv(value: string | undefined): number {
+  if (value === undefined || value.trim() === "") {
+    return DEFAULT_CLAUDE_CODE_MAX_OUTPUT_TOKENS;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_CLAUDE_CODE_MAX_OUTPUT_TOKENS;
+}
+
+function claudeArgsWithoutModelOverrides(args: string[]): string[] {
+  const sanitized: string[] = [];
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === undefined) {
+      continue;
+    }
+    if (arg === "--model" || arg === "-m") {
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith("--model=")) {
+      continue;
+    }
+    sanitized.push(arg);
+  }
+  return sanitized;
+}
+
+function claudeCacheFriendlyArgs(args: string[]): string[] {
+  for (const arg of args) {
+    if (
+      arg === "--exclude-dynamic-system-prompt-sections" ||
+      arg === "--system-prompt" ||
+      arg.startsWith("--system-prompt=") ||
+      arg === "--system-prompt-file" ||
+      arg.startsWith("--system-prompt-file=")
+    ) {
+      return [];
+    }
+  }
+  return ["--exclude-dynamic-system-prompt-sections"];
+}
+
+// Extra settings.json keys aiandrelay applies by default. These are
+// settings-only (no env-var equivalent), so they're injected via claude's
+// `--settings <json>` flag, which *merges* into the user's existing settings
+// rather than replacing them. We bail out entirely if the user already passed
+// `--settings` themselves, so we never clobber their explicit config.
+function claudeExtraSettingsArgs(args: string[], authToken?: string): string[] {
+  for (const arg of args) {
+    if (arg === "--settings" || arg.startsWith("--settings=")) {
+      return [];
+    }
+  }
+
+  // skipWebFetchPreflight: the WebFetch tool pings api.anthropic.com directly
+  // (bypassing ANTHROPIC_BASE_URL / our proxy) for its domain safety check. In
+  // a aiandrelay session api.anthropic.com isn't our model endpoint, so the
+  // preflight fails and WebFetch breaks entirely. Skipping it restores
+  // WebFetch without reaching Anthropic.
+  //
+  // attribution: aiandrelay runs ai& models inside the Claude Code harness,
+  // so Claude's default generated-by text and Co-Authored-By trailer would
+  // identify the wrong model. Keep both commits and PRs unattributed.
+  //
+  // apiKeyHelper: force Claude Code into API-key mode (the helper's output is
+  // used as the api key, sent to our local proxy which accepts x-api-key). This
+  // is what makes aiandrelay work for users whose ORG DISABLED Claude Code for
+  // the claude.ai subscription: in OAuth/subscription mode Claude Code runs an
+  // org-eligibility check at startup and hard-blocks with "Your organization
+  // has disabled Claude subscription access" - even though we only want to talk
+  // to the local proxy. apiKeyHelper is explicit config, so it never triggers
+  // the "detected a custom API key" prompt and never reads OAuth/keychain. The
+  // token is a local, per-session proxy credential (not the ai& key), so
+  // passing it via a shell echo is low-risk.
+  const settings: Record<string, unknown> = {
+    skipWebFetchPreflight: true,
+    attribution: {
+      commit: "",
+      pr: "",
+    },
+  };
+  if (authToken) {
+    // Cross-platform: `printf` is POSIX-only (fails on Windows cmd). Node is
+    // already required for Claude Code / our CLI on every supported OS.
+    settings.apiKeyHelper = `${JSON.stringify(process.execPath)} -e ${JSON.stringify(`process.stdout.write(${JSON.stringify(authToken)})`)}`;
+  }
+  return ["--settings", JSON.stringify(settings)];
+}

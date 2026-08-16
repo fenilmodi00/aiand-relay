@@ -1,0 +1,152 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { postChatCompletionStream } from "../../cli/src/lib/aiand-client.js";
+import { resolveRequestDiagnosticsPath } from "../../cli/src/lib/request-diagnostics.js";
+import { readAiandSseWithRetry } from "../../cli/src/lib/aiand-stream.js";
+
+describe("shared ai& SSE transport", () => {
+  let temporaryHome: string | undefined;
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    if (temporaryHome) {
+      await rm(temporaryHome, { recursive: true, force: true });
+      temporaryHome = undefined;
+    }
+  });
+
+  test("retries an idle response before harness output starts", async () => {
+    vi.stubEnv("AIANDRELAY_STREAM_IDLE_TIMEOUT_MS", "100");
+    vi.stubEnv("AIANDRELAY_STREAM_RETRIES", "1");
+    const retry = vi.fn(async () =>
+      sseResponse([{ choices: [{ delta: { content: "recovered" } }] }]),
+    );
+
+    const events: string[] = [];
+    for await (const event of readAiandSseWithRetry(hangingSseResponse(), retry, {
+      isOutputStarted: () => false,
+    })) {
+      events.push(event.data);
+    }
+
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(events.join("\n")).toContain("recovered");
+  });
+
+  test("retries a stream that closes before DONE when no harness output started", async () => {
+    vi.stubEnv("AIANDRELAY_STREAM_RETRIES", "1");
+    const retry = vi.fn(async () =>
+      sseResponse([
+        { choices: [{ delta: { content: "recovered" } }] },
+        { choices: [{ finish_reason: "stop", delta: {} }] },
+      ]),
+    );
+
+    const events: string[] = [];
+    for await (const event of readAiandSseWithRetry(prematurelyClosedSseResponse([]), retry, {
+      isOutputStarted: () => false,
+    })) {
+      events.push(event.data);
+    }
+
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(events.join("\n")).toContain("recovered");
+  });
+
+  test("does not retry an idle response after harness output starts", async () => {
+    vi.stubEnv("AIANDRELAY_STREAM_IDLE_TIMEOUT_MS", "100");
+    vi.stubEnv("AIANDRELAY_STREAM_RETRIES", "1");
+    const retry = vi.fn(async () => sseResponse([]));
+
+    const consume = async () => {
+      for await (const _event of readAiandSseWithRetry(hangingSseResponse(), retry, {
+        isOutputStarted: () => true,
+      })) {
+        // The fault-injection stream never emits.
+      }
+    };
+
+    await expect(consume()).rejects.toMatchObject({ name: "AiandSseIdleTimeoutError" });
+    expect(retry).not.toHaveBeenCalled();
+  });
+
+  test("persists and surfaces request IDs when an SSE stream stays idle", async () => {
+    temporaryHome = await mkdtemp(path.join(os.tmpdir(), "aiandrelay-sse-test-"));
+    vi.stubEnv("AIANDRELAY_HOME", temporaryHome);
+    vi.stubEnv("AIANDRELAY_STREAM_IDLE_TIMEOUT_MS", "100");
+    vi.stubEnv("AIANDRELAY_STREAM_RETRIES", "0");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        const response = hangingSseResponse();
+        response.headers.set("x-request-id", "upstream-request-123");
+        return response;
+      }),
+    );
+    const response = await postChatCompletionStream(
+      { model: "fault-injection", messages: [], stream: true },
+      { apiKey: "redacted" },
+    );
+    const consume = async () => {
+      for await (const _event of readAiandSseWithRetry(response, async () => sseResponse([]), {
+        isOutputStarted: () => false,
+      })) {
+        // The fault-injection stream never emits.
+      }
+    };
+
+    const error = await consume().catch((caught: unknown) => caught);
+    expect(error).toMatchObject({
+      name: "AiandSseIdleTimeoutError",
+      upstreamRequestId: "upstream-request-123",
+    });
+    expect((error as Error).message).toContain("upstream request ID: upstream-request-123");
+
+    const diagnostics = await readFile(resolveRequestDiagnosticsPath(temporaryHome), "utf8");
+    const persisted = JSON.parse(diagnostics.trim()) as Record<string, unknown>;
+    expect(persisted).toMatchObject({
+      phase: "sse",
+      reason: "idle_timeout",
+      upstreamRequestId: "upstream-request-123",
+      timeoutMs: 100,
+    });
+    expect(persisted.clientRequestId).toEqual(expect.any(String));
+  });
+});
+
+function sseResponse(events: unknown[]): Response {
+  const encoder = new TextEncoder();
+  return new Response(
+    new ReadableStream({
+      start(controller) {
+        for (const event of events) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    }),
+    { status: 200, headers: { "content-type": "text/event-stream" } },
+  );
+}
+
+function hangingSseResponse(): Response {
+  return new Response(
+    new ReadableStream({
+      cancel() {
+        // The shared transport must cancel this reader before retrying.
+      },
+    }),
+    { status: 200, headers: { "content-type": "text/event-stream" } },
+  );
+}
+
+function prematurelyClosedSseResponse(events: unknown[]): Response {
+  return new Response(events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""), {
+    status: 200,
+    headers: { "content-type": "text/event-stream" },
+  });
+}

@@ -1,0 +1,251 @@
+# aiandrelay
+
+> Use ai& models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, Pi Code, and Prime Agent. aiandrelay injects ai& settings for a single run so your normal tool configs stay untouched.
+
+aiandrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`acodex`, `aclaude`, `aopencode`, `apiagent`, `aprime`). For Claude Code and Codex CLI it routes the agent's API traffic to ai& through a local translation proxy; for OpenCode, Pi Code, and Prime Agent it injects per-run provider config (they already speak ai&'s OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from nebius-tf-relay.vercel.app.
+
+This is the LLM-readable documentation file for the project. If you are an AI agent asked to install, configure, or use aiandrelay (headless or interactive), read this file first. It covers installation, configuration, every command, the available models, headless/agentic usage patterns, how to keep the tool up to date, and the routing architecture.
+
+- Project: https://github.com/shivaylamba/nebius-tf-relay
+- Website: https://nebius-tf-relay.vercel.app
+- Installer: https://nebius-tf-relay.vercel.app/install.sh
+- Version manifest: https://nebius-tf-relay.vercel.app/latest.json
+- README: https://github.com/shivaylamba/nebius-tf-relay/blob/main/README.md
+- This file: https://nebius-tf-relay.vercel.app/llms.txt
+
+## Install
+
+One command installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `apiagent`, and `aprime` commands to `~/.aiandrelay/bin/` and installs Bun for you if it isn't already present:
+
+```
+curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
+```
+
+After install, restart your shell (or run the `export PATH=...` line it prints) so the commands are on PATH. The install:
+
+- Downloads the self-contained JS bundle to `~/.aiandrelay/bin/aiandrelay.js`.
+- Writes shell wrappers (`aiandrelay`, `acodex`, `aclaude`, `aopencode`, `apiagent`, `aprime`) that run the bundle with `bun`.
+- Links them into a writable directory on your PATH.
+- Does NOT install the underlying agent CLIs. If a tool is missing, aiandrelay prints its official install command and exits (Prime Agent: `curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh`).
+
+To verify: `aiandrelay --version`.
+
+## Configure
+
+Before the first launch you need an ai& API key (get one at https://docs.aiand.com/):
+
+```
+aiandrelay configure
+```
+
+This stores your ai& API key in `~/.aiandrelay/`. Native Anthropic/Codex `web_search` server tools are not supported; custom function tools named `web_search` still pass through.
+
+You can also set the key non-interactively:
+
+```
+export AIAND_API_KEY=...
+aiandrelay configure        # stores it (skip prompts with the env present)
+```
+
+The API key is required to actually route traffic; the installer lets you skip it (press Enter) and add it later.
+
+## Commands
+
+Running `aiandrelay` with no arguments opens an interactive launcher (requires a TTY) that lets you pick a tool. Run a tool directly with a subcommand:
+
+```
+aiandrelay configure                      # set API keys
+aiandrelay whoami                         # print your anonymous install id
+aiandrelay --version | -v                 # print the version
+aiandrelay help | --help | -h             # print this usage
+
+aiandrelay codex [...]        # alias: acodex   (Codex CLI)
+aiandrelay claude [...]       # alias: aclaude  (Claude Code)
+aiandrelay pi [...]           # alias: apiagent      (Pi Code)
+aiandrelay opencode [...]     # alias: aopencode (OpenCode)
+aiandrelay prime [...]        # alias: aprime   (Prime Agent, PrimeIntellect)
+
+aiandrelay chatgpt [--model <model>] [--restore]   # alpha: ChatGPT Desktop (alias: codex-app)
+
+aiandrelay daemon stop                   # stop the background proxy daemon
+```
+
+Any arguments after the harness name are passed straight through to the underlying agent CLI. For example, `acodex exec "fix the typo"` runs `codex exec` with aiandrelay routing.
+
+Recognized aiandrelay flags (parsed before the passthrough):
+
+- `--api-key <key>` - use this ai& API key for the run.
+- `--main <model>` / `--model <model>` - select the model for this run.
+- `--search <value>` - search setting (harness-specific).
+- `--slot <value>` - session slot selection.
+- `--json` - print machine-readable payloads where supported.
+- `--restore` - restore (used with `chatgpt`).
+
+### ChatGPT Desktop App (alpha)
+
+`aiandrelay chatgpt` persistently patches the ChatGPT Desktop config so the desktop app routes through ai&. Unlike the CLI wrappers, this change stays active until you restore it:
+
+```
+aiandrelay chatgpt                     # configure (patches config)
+aiandrelay chatgpt --restore           # restore your OpenAI profile
+aiandrelay chatgpt --model <model>     # use a specific model
+```
+
+Backups of your original config live under `~/.aiandrelay/backup/codex-app/`.
+
+## Models
+
+The model list is fetched live from ai& (`GET /v1/models?verbose=true`) at startup, so every model ai& serves is available and each model's vision support (modality) comes straight from the API, not a hand-maintained list. Results are cached in `~/.aiandrelay/model-catalog.json` and fall back to a bundled snapshot when offline. The default for Codex and Claude Code is Kimi K3.
+
+### Selecting a model (flag order matters)
+
+Put `--model` (or `--main` for Claude) BEFORE the harness subcommand - aiandrelay consumes it there and routes to that model:
+
+```
+aiandrelay --model moonshotai/kimi-k2.6 codex exec "task"
+aiandrelay --model moonshotai/kimi-k2.6 claude -p "task"
+aiandrelay --main aiand-kimi-k2-7-code claude -p "task"   # Claude matches alias OR id
+```
+
+Do NOT put `--model` after the harness (e.g. `acodex --model X` or `aclaude --model X`). The short aliases expand to `aiandrelay <harness> ...`, so the flag lands after the harness name, goes to the agent's passthrough, and is then stripped - it is silently ignored and the run uses the default (Kimi K3), not the model you asked for. Always use the long form with the flag first.
+
+Featured flagship models (any live ai& id also works with `--model`):
+
+- `moonshotai/kimi-k3` - Kimi K3. Text-only, reasoning + agentic coding. The default coding model (note: ai& capacity for K3 can be flaky).
+- `moonshotai/kimi-k2.6` - Kimi K2.6. Vision + reasoning, 262K context. The vision flagship.
+- `moonshotai/kimi-k2.7-code` - Kimi K2.7 Code. Text-only coding model, 262K context.
+- `motif-technologies/motif-3` - MiniMax M3. Text-only, 196K context, fast and cheap.
+- `qwen/qwen3.6-27b` - Qwen 3.5 397B. Text-only, 262K context, general/coding flagship.
+- `deepseek-ai/deepseek-v4-pro` - DeepSeek V4 Pro. Text-only, 1M context, long-context reasoning.
+- `google/gemma-4-31b-it` - Qwen2.5-VL 72B. Vision, 32K context. The vision fallback.
+
+Note: `zai-org/glm-5.2` was the previous default but ai& removed it from the live catalog (2026-07-27); `zai-org/GLM-5.1` is available in its place.
+
+Vision-capable models (those whose API modality includes image input, e.g. Kimi K2.6 and Qwen2.5-VL) accept image attachments directly; text-only models route images to a vision-capable model automatically (Claude/Codex proxy) or to the `@vision` subagent (OpenCode).
+
+## Headless & agentic usage
+
+Both Claude Code and Codex CLI run headlessly (no TTY), so you can delegate code changes to an AI agent from scripts, CI, or another orchestrating agent. The patterns below were verified against the installed `acodex` and `aclaude` (v0.5.26) and apply to both. They differ in the headless subcommand and in how permissions are handled; the stdin, banner, and model-selection behavior is identical.
+
+### The working invocation pattern
+
+Both wrappers spawn the agent pointed at the local ai& proxy and pass your flags through to the underlying binary. Always close stdin and capture stderr. To run a non-default model, put `--model <id>` before the harness (see Models above).
+
+### Prefer native subagents for delegated aiandrelay runs
+
+If you are an orchestrating agent running inside Claude Code, Codex, or another CLI that has its own native subagent/delegation tool, prefer this pattern for non-trivial aiandrelay work:
+
+1. Spawn a native subagent first.
+2. Tell that subagent to run the needed `aiandrelay` command itself (`acodex`, `aclaude`, `aopencode`, or `apiagent`) with a tight task, explicit files, `< /dev/null`, and the guardrails below.
+3. Have the subagent wait for the delegated aiandrelay run, inspect its result/diff, and report only the useful summary back to you.
+
+Do this instead of having the main orchestrating agent call `acodex`/`aclaude` directly for every delegated edit. It keeps the main agent's context and inference budget focused on coordination/review, lets the native subagent own the details of launching and monitoring aiandrelay, and works especially well when Claude Code delegates to a subagent that then uses Codex through `acodex`.
+
+Codex CLI - non-interactive `exec` (the `-s workspace-write` sandbox grants write access; `exec` never prompts interactively):
+
+```
+aiandrelay codex exec -s workspace-write -C /abs/repo "<tight, single-concern task with explicit files + guardrails>" < /dev/null 2>&1
+```
+
+If the working directory isn't a git repo, codex refuses to start ("Not inside a trusted directory"); add `--skip-git-repo-check`, or run inside a git repo.
+
+Claude Code - print mode `-p` (runs once and exits). Add `--dangerously-skip-permissions` so a headless subagent never blocks on a permission prompt:
+
+```
+aiandrelay claude -p "<tight, single-concern task with explicit files + guardrails>" --dangerously-skip-permissions --output-format json < /dev/null 2>&1
+```
+
+Run it in the background, health-check at ~60s, review the diff, run lint, then commit. One file or one concern per task gives the cleanest reviews.
+
+### Always close stdin: `< /dev/null`
+
+This is the single biggest footgun. When launched in the background with an open/inherited stdin and no TTY, the process prints `Reading additional input from stdin...` and blocks forever - it never starts the task and produces no edits.
+
+- **Workaround:** append `< /dev/null` to every invocation. With stdin closed it runs cleanly every time.
+- **Do not** treat the `Reading additional input from stdin...` line as a hang signal on its own - that line also prints on healthy `< /dev/null` runs (it reads EOF immediately and proceeds). The real hang signal is: that line is the **last** line AND the output line count stays frozen. Health checks should watch for a *frozen line count*, not the presence of the stdin message.
+
+### Health-check a launch, don't assume
+
+A hung/failed start and a legitimately-working task both look like "background process still running." Without tailing the log there's no way to tell in the first minute whether it connected. Adopt a scripted ~60s health check:
+
+- process alive, AND
+- the banner line `Routing Codex → ai&` (or `Routing Claude Code → ai&`) is present (confirms it connected, not hung pre-connection), AND
+- no `command not found` / startup error in the log, AND
+- output line count is still growing (not frozen).
+
+Kill and relaunch on a failed start.
+
+### One concern per task; keep taste on the orchestrator side
+
+Give explicit file lists and verbatim text for any creative content. Keep taste decisions (copy, design) on the human/orchestrator side and pass the exact text to insert. When told to touch only a named set of files, the agent respects the scope precisely and will flag (not silently fix) a file outside the scope that has the same issue - surface that gap for a human to decide.
+
+### Wait for done before reviewing or linting
+
+Do not lint or review mid-run. The agent rewrites files in passes and a file can be briefly malformed mid-edit (e.g., a stray `*/` mid-comment) that is correct by task end. Reviewing mid-run chases phantom errors. Wait for the done signal, then:
+
+1. Review the diff yourself.
+2. Re-run lint yourself (the agent self-verifies with lint and reports honestly, but the review step has caught real issues - e.g., a `server-only` import that would crash, or a 7th file needing the same fix).
+3. Commit.
+
+### Cost awareness
+
+Per-task cost varies a lot with how verbose the agent is. Mechanical, well-scoped changes are cheap (~$0.10); a single change that triggers verbose JSDoc + defensive guard code can cost ~10–20× more. To keep cost down: scope tasks tightly, and prefer a "match surrounding comment density; don't over-explain" instruction for small mechanical changes.
+
+### Summary of recommendations
+
+1. Always `< /dev/null`.
+2. One concern per task; give an explicit file list and verbatim text for creative content.
+3. 60s health check after launch; kill + relaunch on a failed start (watch for frozen line count).
+4. Never lint/review mid-run; wait for the done signal.
+5. Review the diff + re-run lint yourself before committing.
+6. To select a model, put `--model` (or `--main` for Claude) before the harness subcommand - after the harness it is silently ignored and the default runs.
+7. For Claude `-p`, pass `--dangerously-skip-permissions` so a headless subagent never blocks on a permission prompt. Codex `exec` is non-interactive by design; use `-s workspace-write` for edits and `--skip-git-repo-check` outside a git repo.
+8. If your current CLI has native subagents, delegate aiandrelay launches to one of those subagents and let it return the result, instead of spending the main orchestrator's context on the full `acodex`/`aclaude` run.
+
+## Keeping aiandrelay up to date
+
+The installed binary self-updates automatically in the background. The check is throttled and bounded, never throws, and runs before argument parsing - so even `aiandrelay help` keeps an install current. The update is pulled from https://nebius-tf-relay.vercel.app/latest.json, which contains `version`, `url`, and `publishedAt`.
+
+To force a refresh, re-run the install one-liner:
+
+```
+curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
+```
+
+You can check the installed version with `aiandrelay --version` and compare it against the published manifest at https://nebius-tf-relay.vercel.app/latest.json.
+
+## Architecture (how routing works)
+
+There are two harness families behind the four tools:
+
+- **Proxied harnesses - Claude Code, Codex CLI.** `aclaude` and `acodex` spawn a shared local daemon and route the agent's `/v1/*` traffic through it. The daemon translates the agent's native wire format (Anthropic Messages for Claude, OpenAI Responses for Codex) to ai&'s chat-completions API and back. Per run: it resolves the model, ensures the daemon, registers a session with your token, prints a banner, spawns the agent pointed at the local proxy, tracks cost, and deregisters on exit. Nothing is written to your real agent config - close it and your setup is exactly as it was.
+
+- **Spawned harnesses - OpenCode, Pi Code, Prime Agent.** `aopencode`, `apiagent`, and `aprime` spawn the agent binary directly. The binary talks to ai& itself, using ephemeral config injected only for that launch (OpenCode), a temporary `models.json` on disk (Pi), or a relay-owned config dir under `~/.aiandrelay/prime-agent` (Prime Agent). No daemon, no proxy.
+
+The daemon is one persistent local process shared by all proxied sessions. If you ever need to stop it manually:
+
+```
+aiandrelay daemon stop
+```
+
+`aiandrelay chatgpt` (alpha) is the exception: it persistently patches ChatGPT Desktop config to route through ai& (instead of per-run injection), with backups under `~/.aiandrelay/backup/codex-app/`. Restore with `aiandrelay chatgpt --restore`.
+
+## Troubleshooting
+
+- **"No ai& API key found"** - run `aiandrelay configure` or set `AIAND_API_KEY`.
+- **A tool command is not found** - aiandrelay does not install the agent CLIs for you. It prints the official install command (e.g. `npm install -g @openai/codex`) and the docs link when the tool is missing; install it, then re-run.
+- **Native web search fails** - expected. aiandrelay does not emulate Anthropic/Codex `web_search` server tools. Use a custom function tool if you need search.
+- **Headless run hangs and produces no edits** - you forgot `< /dev/null`. Close stdin and relaunch; see the Headless usage section.
+- **Cost seems high for a small change** - the agent over-documented. Scope the task tighter and add a "don't over-explain" instruction.
+- **Want your normal config back** - stop using the wrappers. No agent config was saved, so your OpenCode / Claude Code / Codex CLI / Pi Code setup is untouched. For ChatGPT Desktop, run `aiandrelay chatgpt --restore`.
+
+## Links
+
+- [GitHub](https://github.com): source repository and issues
+- [README](https://github.com): human-readable project overview
+- [Website](https://nebius-tf-relay.vercel.app): landing page
+- [Install script](https://nebius-tf-relay.vercel.app/install.sh): one-command installer (`curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh`)
+- [Version manifest](https://nebius-tf-relay.vercel.app/latest.json): current published version and release timestamp
+- [This LLM docs file](https://nebius-tf-relay.vercel.app/llms.txt): the file you are reading now
+- [ai& API keys](https://docs.aiand.com/): get a key to route traffic
+- [llms.txt specification](https://llmstxt.org): the convention this file follows

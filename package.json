@@ -1,0 +1,41 @@
+{
+  "name": "aiandrelay",
+  "version": "0.10.1",
+  "private": true,
+  "description": "Use ai& models in Claude Code, OpenCode, Codex, Pi Code, and Prime Agent",
+  "license": "MIT",
+  "workspaces": [
+    "site",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:bundle": "node scripts/build-bundle.mjs",
+    "build:site": "pnpm build:bundle && pnpm --dir site exec convex codegen --typecheck disable && pnpm --filter @aiandrelay/site build",
+    "build:site:preview": "pnpm build:bundle && pnpm --filter @aiandrelay/site build",
+    "bump-version": "bash scripts/bump-version.sh",
+    "dev": "pnpm -F @aiandrelay/cli dev",
+    "dev:site": "pnpm --filter @aiandrelay/site dev",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "hooks:install": "lefthook install",
+    "test": "pnpm -F @aiandrelay/tests test",
+    "test:offline": "pnpm -F @aiandrelay/tests test:offline",
+    "bench:proxy": "pnpm -F @aiandrelay/tests bench:proxy",
+    "capture:proxy-fixtures": "pnpm -F @aiandrelay/tests capture:proxy-fixtures",
+    "watch": "pnpm dev",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "lefthook": "2.1.9",
+    "oxfmt": "0.57.0",
+    "turbo": "^2.10.1",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@11.9.0"
+}

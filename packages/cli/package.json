@@ -1,0 +1,28 @@
+{
+  "name": "@aiandrelay/cli",
+  "version": "0.10.1",
+  "description": "CLI for routing Claude Code, OpenCode, Codex, and Pi Code through ai&",
+  "license": "MIT",
+  "bin": {
+    "aiandrelay": "./dist/bin/aiandrelay.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').chmodSync('dist/bin/aiandrelay.js', 0o755)\"",
+    "dev": "pnpm build && sh -c 'node scripts/watch-bin-mode.mjs & tsc -p tsconfig.json --watch --preserveWatchOutput'",
+    "watch": "pnpm dev",
+    "typecheck": "pnpm --filter @aiandrelay/models build && tsc -p tsconfig.json --noEmit",
+    "prepack": "pnpm build",
+    "test": "pnpm typecheck"
+  },
+  "dependencies": {
+    "@aiandrelay/models": "workspace:*",
+    "@clack/prompts": "^0.8.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

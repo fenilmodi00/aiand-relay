@@ -1,0 +1,3 @@
+{
+  "ignorePatterns": ["site/aiandrelay.js", "site/src/routeTree.gen.ts", "site/convex/_generated/**"]
+}

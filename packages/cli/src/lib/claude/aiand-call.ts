@@ -1,0 +1,173 @@
+import { type ServerResponse } from "node:http";
+import { type ModelDefinition } from "@aiandrelay/models";
+import { writeJson } from "../http-util.js";
+import { writeProxyDebugLog } from "../proxy-debug.js";
+import { parseRetryAfter } from "../aiand-retry.js";
+import { postChatCompletion } from "../aiand-client.js";
+import type { OpenAIChatResponse, AiandApiError, AiandFetchResult } from "./wire-types.js";
+
+type AiandCallOptions = {
+  apiKey: string;
+  baseUrl: string;
+  debug?: boolean | undefined;
+};
+
+// Transient upstream faults worth retrying with backoff. 429 = rate limited;
+// 503/overloaded = server-side temporary capacity. Everything else (401, 400,
+// 402, 404, 5xx other than 503) is non-retryable - retrying a bad key or a
+// malformed request just delays the same failure.
+const RETRYABLE_STATUSES = new Set([429, 503]);
+const RETRYABLE_ERROR_CODES = new Set(["overloaded", "service_unavailable"]);
+
+/**
+ * POST to ai& with automatic retry for transient faults (429 / 503 /
+ * overloaded). On a non-retryable status, or after MAX_RETRIES retries, returns
+ * `{ ok: false, error }` carrying the mapped Anthropic error shape - the caller
+ * throws it to surface an honest error instead of flattening to 500.
+ *
+ * Backoff honors `Retry-After` when ai& sends it (seconds or HTTP-date),
+ * else exponential 1s → 2s → 4s with up to ±25% jitter. Deterministic jitter is
+ * derived from the attempt index so the same call retraces the same waits
+ * (Math.random would break workflow resume determinism).
+ */
+export async function fetchAiand(
+  payload: Record<string, unknown>,
+  options: AiandCallOptions,
+  modelDefinition: ModelDefinition,
+  signal?: AbortSignal,
+): Promise<AiandFetchResult> {
+  // Delegate the fetch + 429/503 retry loop AND the reactive context-fit retry
+  // to the shared ai& client (aiand-client.ts). Passing the model
+  // definition enables the context-fit repair; this harness keeps only the
+  // Anthropic error-shape mapping that's specific to its wire format.
+  const response = await postChatCompletion(payload, options, signal, {
+    modelDefinition,
+    debug: options.debug,
+  });
+  if (response.ok) {
+    return { ok: true, json: (await response.json()) as OpenAIChatResponse };
+  }
+  const error = await mapAiandError(response);
+  debugLog(options, "aiand error", {
+    status: error.status,
+    anthropicType: error.anthropicType,
+    code: error.code,
+    retryable: error.retryable,
+    body: error.message.slice(0, 1000),
+  });
+  return { ok: false, error };
+}
+
+/**
+ * Read a non-OK ai& response and normalize it into a AiandApiError with
+ * the mapped Anthropic error type. Pulls the human message and code from
+ * ai&'s `error` object (it nests message under `error.message` for
+ * validation errors, and as a string for auth errors).
+ */
+export async function mapAiandError(response: Response): Promise<AiandApiError> {
+  const raw = await response.text();
+  let code: string | undefined;
+  let message = raw.slice(0, 500);
+  try {
+    const parsed = JSON.parse(raw) as {
+      error?: {
+        message?: string | { message?: string; type?: string; code?: string };
+        type?: string;
+        code?: string;
+      };
+    };
+    const err = parsed.error;
+    if (err) {
+      code = err.code ?? (typeof err.message === "object" ? err.message.code : undefined);
+      const msg =
+        typeof err.message === "object"
+          ? err.message.message
+          : typeof err.message === "string"
+            ? err.message
+            : undefined;
+      message = msg ?? err.type ?? message;
+    }
+  } catch {
+    // Keep the raw slice as the message if the body wasn't JSON.
+  }
+
+  const retryAfterMs = parseRetryAfter(response.headers.get("retry-after"));
+  const retryable =
+    RETRYABLE_STATUSES.has(response.status) ||
+    (typeof code === "string" && RETRYABLE_ERROR_CODES.has(code));
+
+  const mapped = mapStatusToAnthropicError(response.status);
+  return {
+    status: response.status,
+    anthropicStatus: mapped.status,
+    anthropicType: mapped.type,
+    message: `ai& API returned ${response.status}: ${message}`,
+    code,
+    retryAfterMs,
+    retryable,
+  };
+}
+
+/**
+ * Map an upstream HTTP status to the Anthropic error shape Claude Code knows how
+ * to render (the binary recognizes api_error, authentication_error,
+ * rate_limit_error, invalid_request_error, overloaded_error, not_found_error,
+ * permission_error, billing_error, timeout_error). Defaults to api_error.
+ */
+function mapStatusToAnthropicError(status: number): { status: number; type: string } {
+  switch (status) {
+    case 400:
+      return { status: 400, type: "invalid_request_error" };
+    case 401:
+      return { status: 401, type: "authentication_error" };
+    case 402:
+      return { status: 402, type: "billing_error" };
+    case 403:
+      return { status: 403, type: "permission_error" };
+    case 404:
+      return { status: 404, type: "not_found_error" };
+    case 408:
+      return { status: 408, type: "timeout_error" };
+    case 429:
+      return { status: 429, type: "rate_limit_error" };
+    case 503:
+      return { status: 503, type: "overloaded_error" };
+    case 500:
+    case 502:
+    case 504:
+      return { status: 500, type: "api_error" };
+    default:
+      return { status: status || 500, type: "api_error" };
+  }
+}
+
+export function writeAnthropicError(
+  res: ServerResponse,
+  status: number,
+  type: string,
+  message: string,
+): void {
+  writeJson(res, status, {
+    type: "error",
+    error: { type, message },
+  });
+}
+
+/** Whether a thrown value is a normalized ai& upstream error. */
+export function isAiandApiError(value: unknown): value is AiandApiError {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "anthropicType" in value &&
+    "anthropicStatus" in value &&
+    "retryable" in value
+  );
+}
+
+function debugLog(
+  options: AiandCallOptions,
+  label: string,
+  value: unknown | (() => unknown),
+): void {
+  writeProxyDebugLog("aiandrelay proxy", options, label, value);
+}
