@@ -2,8 +2,6 @@
 
 Run your local coding agents on [ai&](https://docs.aiand.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, and **Prime Agent** all talk to open-weight models (GLM 5.2, Kimi K2.7 Code, Motif 3, DeepSeek V4, …) instead of their default backends.
 
-
-
 ```bash
 curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
 ```

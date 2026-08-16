@@ -15,25 +15,45 @@ const ROOT = process.cwd();
 
 // directories to skip entirely (gitignored or build output)
 const DIRECTORY_ONLY = new Set([
-  ".git", "node_modules", ".turbo", ".cache", ".vercel", ".next", "dist", "build",
-  ".scratch", ".omo", ".opencode", ".cursor", ".claude", ".codex", ".gstack",
-  "docs", "artifacts", "tmp",
+  ".git",
+  "node_modules",
+  ".turbo",
+  ".cache",
+  ".vercel",
+  ".next",
+  "dist",
+  "build",
+  ".scratch",
+  ".omo",
+  ".opencode",
+  ".cursor",
+  ".claude",
+  ".codex",
+  ".gstack",
+  "docs",
+  "artifacts",
+  "tmp",
 ]);
 
 // specific files to skip (generated, lockfiles, or the tool itself)
 const SKIP_FILENAMES = new Set([
-  "bun.lock", "aiandrelay.js", "latest.json", "install.sh", "install.mjs",
-  "find-deprecated.mjs", "replace-legacy.mjs",
+  "bun.lock",
+  "aiandrelay.js",
+  "latest.json",
+  "install.sh",
+  "install.mjs",
+  "find-deprecated.mjs",
+  "replace-legacy.mjs",
   "claude-headless-coding-session.messages.json",
   "codex-headless-coding-session.responses.json",
 ]);
 
 // terms to look for (case-insensitive)
 const PATTERNS = [
-  /\bnebius\b/i,             // Nebius
-  /nebiusrelay/i,            // ~/.nebiusrelay
-  /nebus/i,                  // typo of Nebius
-  /token\s*factory/i,        // Token Factory / tokenfactory
+  /\bnebius\b/i, // Nebius
+  /nebiusrelay/i, // ~/.nebiusrelay
+  /nebus/i, // typo of Nebius
+  /token\s*factory/i, // Token Factory / tokenfactory
 ];
 
 function walk(dir, into) {
@@ -50,7 +70,10 @@ function walk(dir, into) {
       walk(full, into);
     } else {
       if (SKIP_FILENAMES.has(e.name)) continue;
-      if (/\.(png|jpe?g|gif|webp|avif|ico|pdf|zip|tar|gz|exe|ttf|woff2?|wasm|map|jsonl)$/.test(e.name)) continue;
+      if (
+        /\.(png|jpe?g|gif|webp|avif|ico|pdf|zip|tar|gz|exe|ttf|woff2?|wasm|map|jsonl)$/.test(e.name)
+      )
+        continue;
       const full = path.join(dir, e.name);
       if (fs.statSync(full).size > 2 * 1024 * 1024) continue;
       into.push(full);

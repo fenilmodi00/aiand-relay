@@ -205,7 +205,7 @@ function Home() {
               GitHub
             </a>
             <a
-              className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-violet px-3.5 py-2 text-[13.5px] font-semibold text-white shadow-[0_1px_2px_rgba(10,10,10,.14),0_8px_20px_-8px_rgba(106,92,243,.7)] transition hover:brightness-[1.06] active:scale-[.98]"
+              className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-[#000000] px-3.5 py-2 text-[13.5px] font-semibold text-white shadow-[0_1px_2px_rgba(10,10,10,.14),0_8px_20px_-8px_rgba(0,0,0,.7)] transition hover:brightness-[1.06] active:scale-[.98]"
               href={aiandApiKeysUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -224,12 +224,7 @@ function Home() {
             rel="noopener noreferrer"
             className="mb-7 inline-flex items-center gap-2 rounded-full border border-line-strong bg-white/80 py-1.5 pr-3.5 pl-1.5 text-[13px] font-medium text-muted shadow-[0_1px_2px_rgba(10,10,10,.04)] backdrop-blur transition hover:text-ink"
           >
-            <img
-              src="/aiand-logo.png"
-              alt=""
-              aria-hidden="true"
-              className="size-5 rounded-full"
-            />
+            <img src="/aiand-logo.png" alt="" aria-hidden="true" className="size-5 rounded-full" />
             Powered by ai&
             <span className="text-faint">·</span>
             <span className="text-ink">open models</span>
@@ -268,7 +263,7 @@ function Home() {
                 </span>
               </div>
               <div className="flex items-center gap-3 rounded-xl bg-black/25 px-4 py-3.5 text-left ring-1 ring-white/[.06] max-[560px]:flex-col max-[560px]:items-stretch">
-                <span className="select-none font-mono text-[15px] text-lime">$</span>
+                <span className="select-none font-mono text-[15px] text-brand">$</span>
                 <code
                   ref={commandRef}
                   className="min-w-0 flex-1 overflow-x-auto font-mono text-[13.5px] leading-snug whitespace-nowrap text-white/90 max-[560px]:text-[12.5px]"
@@ -279,7 +274,7 @@ function Home() {
                   type="button"
                   onClick={handleCopy}
                   aria-label="Copy install command"
-                  className="inline-flex min-w-[92px] cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 font-sans text-[13px] font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/15 active:scale-95 data-[copied=true]:bg-lime data-[copied=true]:text-ink data-[copied=true]:ring-lime"
+                  className="inline-flex min-w-[92px] cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 font-sans text-[13px] font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/15 active:scale-95 data-[copied=true]:bg-brand data-[copied=true]:text-white data-[copied=true]:ring-brand"
                   data-copied={copyState === "copied"}
                 >
                   {copyState === "copied" ? (
@@ -378,7 +373,7 @@ function Home() {
               className="pointer-events-none absolute -bottom-20 -right-10 size-56 rounded-full bg-violet/25 blur-3xl"
             />
             <div className="relative">
-              <h3 className="text-[26px] font-semibold leading-tight tracking-tight text-lime">
+              <h3 className="text-[26px] font-semibold leading-tight tracking-tight text-brand">
                 One key.
                 <br />
                 Every agent.
@@ -404,7 +399,7 @@ function Home() {
                 href={aiandApiKeysUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-7 inline-flex items-center gap-1.5 rounded-lg bg-lime px-4 py-2.5 text-[13.5px] font-semibold text-ink transition hover:brightness-[1.03] active:scale-[.98]"
+                className="mt-7 inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2.5 text-[13.5px] font-semibold text-white transition hover:brightness-[1.06] active:scale-[.98]"
               >
                 Get an ai& key
                 <ArrowUpRight />
@@ -447,7 +442,7 @@ function Home() {
           <div className="mt-6 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((f) => (
               <div key={f.title} className="rounded-2xl border border-line-strong bg-white p-5">
-                <span className="mb-4 block h-1 w-8 rounded-full bg-lime" />
+                <span className="mb-4 block h-1 w-8 rounded-full bg-brand" />
                 <h3 className="text-[15px] font-semibold text-ink">{f.title}</h3>
                 <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{f.body}</p>
               </div>
@@ -469,7 +464,7 @@ function Home() {
             onClick={handleCopy}
             className="inline-flex items-center gap-2.5 rounded-xl bg-ink px-5 py-3 font-mono text-[13.5px] text-white shadow-[0_1px_2px_rgba(10,10,10,.14),0_16px_40px_-20px_rgba(10,15,30,.6)] transition hover:brightness-110 active:scale-[.98]"
           >
-            <span className="text-lime">$</span>
+            <span className="text-brand">$</span>
             <span className="max-[520px]:hidden">
               curl -fsSL aiand-relay.vercel.app/install.sh | sh
             </span>
@@ -558,7 +553,7 @@ function StatusBadge({ status }: Readonly<{ status: "Stable" | "Beta" }>) {
 function BrandMark() {
   return (
     <span className="relative flex size-8 items-center justify-center rounded-[9px] bg-ink">
-      <span className="absolute inset-0 rounded-[9px] bg-[radial-gradient(120%_120%_at_20%_0%,rgba(198,241,53,.4)_0%,rgba(198,241,53,0)_55%)]" />
+      <span className="absolute inset-0 rounded-[9px] bg-[radial-gradient(120%_120%_at_20%_0%,rgba(199,0,7,.5)_0%,rgba(199,0,7,0)_55%)]" />
       <PiMarkWhite />
     </span>
   );
@@ -568,7 +563,7 @@ function PiMarkWhite() {
   return (
     <svg className="relative size-[18px]" viewBox="0 0 800 800" aria-hidden="true">
       <path
-        fill="#c6f135"
+        fill="#c70007"
         fillRule="evenodd"
         d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"
       />

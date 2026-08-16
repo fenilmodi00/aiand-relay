@@ -21,6 +21,25 @@
   --color-violet-soft: #efedff;
   --color-surface: #0a0f1e; /* dark feature surface */
   --color-surface-2: #111a30; /* dark surface gradient stop */
+
+  --color-brand: #c70007; /* ai& red - replaces lime accents in key CTAs */
+
+  /* aiand.com extracted palette */
+  --color-ai-black: #000000; /* primary text + dark surfaces */
+  --color-ai-white: #ffffff;
+  --color-ai-link: #0000ee; /* link blue */
+  --color-ai-red: #c70007; /* signature red */
+  --color-ai-gray: #999999; /* muted text */
+  --color-ai-warm: #b19a9a; /* warm pink-gray */
+  --color-ai-brown: #3d3535; /* warm dark brown (hover) */
+  --color-ai-canvas: #fcfcfc; /* page background */
+  --color-ai-beige: #f7f3f3; /* warm light fill */
+  --color-ai-beige-2: #f8f3f3;
+  --color-ai-beige-3: #fbf9f9;
+  --color-ai-gray-2: #7a7a7a;
+  --color-ai-gray-3: #808080;
+  --color-ai-gray-4: #767676;
+  --color-ai-gray-5: #666666;
 }
 
 @layer base {
