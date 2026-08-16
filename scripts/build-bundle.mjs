@@ -68,7 +68,7 @@ console.log(`✓ bundle → site/public/aiandrelay.js and site/aiandrelay.js (${
 
 const manifest = {
   version: VERSION,
-  url: "https://nebius-tf-relay.vercel.app/aiandrelay.js",
+  url: "https://aiand-relay.vercel.app/aiandrelay.js",
   publishedAt: new Date().toISOString(),
 };
 const json = `${JSON.stringify(manifest, null, 2)}\n`;

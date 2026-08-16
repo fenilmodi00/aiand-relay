@@ -55,7 +55,7 @@ async function daemonStop(): Promise<void> {
 
 async function loadStoredSecrets(): Promise<void> {
   // Native web search / Tavily removed. API keys come from AIAND_API_KEY,
-  // project .env allowlist, or resolveAiandApiKey(home) — never NEBIUS_*/TAVILY_*.
+  // project .env allowlist, or resolveAiandApiKey(home).
   if (process.env.AIAND_API_KEY?.trim()) {
     return;
   }

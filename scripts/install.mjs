@@ -10,7 +10,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "n
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
-const ORIGIN = process.env.AIANDRELAY_ORIGIN ?? "https://nebius-tf-relay.vercel.app";
+const ORIGIN = process.env.AIANDRELAY_ORIGIN ?? "https://aiand-relay.vercel.app";
 const INSTALL_DIR = process.env.AIANDRELAY_HOME ?? join(homedir(), ".aiandrelay");
 const BIN_DIR = join(INSTALL_DIR, "bin");
 const isWin = process.platform === "win32";

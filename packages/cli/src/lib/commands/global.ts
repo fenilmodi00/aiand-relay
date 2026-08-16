@@ -29,11 +29,7 @@ Codex flags:
 Your last-used model is remembered per tool: change it with /model (or --model
 before the harness) and the next launch reuses it.
 
-One-time migration from Nebius TF Relay: install aiandrelay, run fresh
-\`configure\` with an ai& API key, and set AIAND_API_KEY. Old ~/.nebiusrelay
-and NEBIUS_* env vars are ignored.
-
-Docs: https://nebius-tf-relay.vercel.app/llms.txt
+Docs: https://aiand-relay.vercel.app/llms.txt
   LLM-readable documentation - if you are an AI agent asked to install, configure,
   or use aiandrelay (including headless use), read that file first.
 `);
@@ -51,9 +47,7 @@ export async function runConfigure(home = os.homedir()): Promise<boolean> {
     return `  ${HARNESS_LABEL[h]}: ${found}${support}`;
   });
   clack.log.info(`Detected tools:\n${lines.join("\n")}`);
-  clack.log.info(
-    "Fresh configure only — Nebius Token Factory keys and ~/.nebiusrelay are not migrated.",
-  );
+  clack.log.info("Fresh configure only — no legacy key/home migration.");
 
   const existing = resolveStoredApiKey((await readGlobalConfig(home)).apiKey);
   let apiKey = existing || process.env.AIAND_API_KEY || "";

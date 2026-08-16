@@ -171,6 +171,10 @@ PLAN.md
 .cursor/
 .claude/
 .codex/
+docs/superpowers/*
 
 # Accidental alternate lockfile (this repo uses pnpm)
 bun.lock
+
+.vercel
+.env*

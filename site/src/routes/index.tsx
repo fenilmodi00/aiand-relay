@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
-const installCommand = "curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh";
-const githubUrl = "https://github.com/shivaylamba/nebius-tf-relay";
-const docsUrl = "https://github.com/shivaylamba/nebius-tf-relay/blob/main/README.md";
+const installCommand = "curl -fsSL https://aiand-relay.vercel.app/install.sh | sh";
+const githubUrl = "https://github.com/fenilmodi00/aiand-relay";
+const docsUrl = "https://github.com/fenilmodi00/aiand-relay/blob/main/README.md";
 const aiandApiKeysUrl = "https://docs.aiand.com/";
 const llmsUrl = "/llms.txt";
 
@@ -225,7 +225,7 @@ function Home() {
             className="mb-7 inline-flex items-center gap-2 rounded-full border border-line-strong bg-white/80 py-1.5 pr-3.5 pl-1.5 text-[13px] font-medium text-muted shadow-[0_1px_2px_rgba(10,10,10,.04)] backdrop-blur transition hover:text-ink"
           >
             <img
-              src="/nebius-token-factory.png"
+              src="/aiand-logo.png"
               alt=""
               aria-hidden="true"
               className="size-5 rounded-full"
@@ -471,7 +471,7 @@ function Home() {
           >
             <span className="text-lime">$</span>
             <span className="max-[520px]:hidden">
-              curl -fsSL nebius-tf-relay.vercel.app/install.sh | sh
+              curl -fsSL aiand-relay.vercel.app/install.sh | sh
             </span>
             <span className="hidden max-[520px]:inline">curl … | sh</span>
             <span className="ml-1 text-white/50">{copyState === "copied" ? "✓" : "⧉"}</span>

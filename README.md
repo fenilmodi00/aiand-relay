@@ -2,10 +2,10 @@
 
 Run your local coding agents on [ai&](https://docs.aiand.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, and **Prime Agent** all talk to open-weight models (GLM 5.2, Kimi K2.7 Code, Motif 3, DeepSeek V4, …) instead of their default backends.
 
-Checkout this Youtube video: [![Watch the video](https://youtube.com)](https://www.youtube.com/watch?v=u8c_exTe2To)
+
 
 ```bash
-curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
+curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
 ```
 
 Then:
@@ -30,7 +30,7 @@ Nothing about your agent install changes. The relay injects a base URL and API k
 The one-liner installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `apiagent`, and `aprime` commands to `~/.aiandrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
 
 ```bash
-curl -fsSL https://nebius-tf-relay.vercel.app/install.sh | sh
+curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
 ```
 
 First run walks you through configuration (or run it directly):
@@ -40,8 +40,6 @@ aiandrelay configure
 ```
 
 You'll be asked for an ai& API key (<https://docs.aiand.com/>). It is stored in `~/.aiandrelay/` and never leaves your machine. You can also set `AIAND_API_KEY` in the environment instead.
-
-**Migrating from Nebius TF Relay:** install `aiandrelay`, run a fresh `configure` with an **ai&** key, and set `AIAND_API_KEY`. Nebius Token Factory secrets and `~/.nebiusrelay` are not read or migrated.
 
 If the underlying agent CLI (Claude Code, Codex, etc.) isn't installed, the relay prints its official install command and exits. It never installs agents for you.
 
@@ -90,11 +88,11 @@ Native Anthropic/Codex `web_search` server tools are **not supported**. Custom f
 | `AIANDRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                                                                                          |
 | `AIANDRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                                 |
 
-The installed binary keeps itself up to date from `nebius-tf-relay.vercel.app`, throttled to once an hour, and swallows every failure. Dev/source runs never self-update.
+The installed binary keeps itself up to date from `aiand-relay.vercel.app`, throttled to once an hour, and swallows every failure. Dev/source runs never self-update.
 
 ## For AI agents
 
-An LLM-readable doc is published at <https://nebius-tf-relay.vercel.app/llms.txt>. If you are an agent asked to install, configure, or drive aiandrelay (including headless), read that first. It covers install, configure, every command, the models, and headless usage patterns.
+An LLM-readable doc is published at <https://aiand-relay.vercel.app/llms.txt>. If you are an agent asked to install, configure, or drive aiandrelay (including headless), read that first. It covers install, configure, every command, the models, and headless usage patterns.
 
 ## Local development
 
