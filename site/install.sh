@@ -6,7 +6,7 @@
 # Installs the aiandrelay CLI as a Bun-target JS bundle at
 # ~/.aiandrelay/bin/aiandrelay.js, with a `aiandrelay` wrapper script on
 # PATH that runs it with `bun`. Installs Bun for the user if `bun` isn't on
-# PATH. Also installs `aclaude`, `aopencode`, `acodex`, `apiagent`, `aprime`, `ahermes`, and `aomp`
+# PATH. Also installs `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`, and `aomp`
 # convenience wrappers.
 #
 # After install, prompts for a required ai& API key via /dev/tty (so
@@ -69,7 +69,7 @@ exec bun "$BIN_DIR/aiandrelay.js" "\$@"
 EOF
 chmod +x "$BIN_DIR/aiandrelay"
 
-# Short aliases: aclaude / aopencode / acodex / apiagent / aprime / ahermes / aomp
+# Short aliases: aclaude / aopencode / acodex / api / aprime / ahermes / aomp
 cat > "$BIN_DIR/aclaude" <<EOF
 #!/usr/bin/env sh
 exec bun "$BIN_DIR/aiandrelay.js" claude "\$@"
@@ -88,11 +88,11 @@ exec bun "$BIN_DIR/aiandrelay.js" codex "\$@"
 EOF
 chmod +x "$BIN_DIR/acodex"
 
-cat > "$BIN_DIR/apiagent" <<EOF
+cat > "$BIN_DIR/api" <<EOF
 #!/usr/bin/env sh
 exec bun "$BIN_DIR/aiandrelay.js" pi "\$@"
 EOF
-chmod +x "$BIN_DIR/apiagent"
+chmod +x "$BIN_DIR/api"
 
 cat > "$BIN_DIR/aprime" <<EOF
 #!/usr/bin/env sh
@@ -112,11 +112,17 @@ exec bun "$BIN_DIR/aiandrelay.js" omp "\$@"
 EOF
 chmod +x "$BIN_DIR/aomp"
 
-ok "Wrappers installed: aiandrelay, aclaude, aopencode, acodex, apiagent, aprime, ahermes, aomp → $BIN_DIR"
+ok "Wrappers installed: aiandrelay, aclaude, aopencode, acodex, api, aprime, ahermes, aomp → $BIN_DIR"
+
+# Renamed alias: apiagent → api
+if [ -e "$BIN_DIR/apiagent" ] || [ -L "$BIN_DIR/apiagent" ]; then
+  rm -f "$BIN_DIR/apiagent"
+  ok "Removed old alias: apiagent (now api)"
+fi
 
 # Remove old aiandrelay-owned wrappers that used the upstream agent names.
 # Current installs must never shadow `claude`, `codex`, or `opencode`; users
-# should get the real CLIs unless they explicitly run aclaude/acodex/aopencode/apiagent.
+# should get the real CLIs unless they explicitly run aclaude/acodex/aopencode/api.
 remove_legacy_shadow_wrapper() {
   name="$1"
   path="$BIN_DIR/$name"
@@ -126,7 +132,7 @@ remove_legacy_shadow_wrapper() {
   if [ -L "$path" ]; then
     target="$(readlink "$path" 2>/dev/null || true)"
     case "$target" in
-      "$BIN_DIR/aclaude"|"$BIN_DIR/acodex"|"$BIN_DIR/aopencode"|"$BIN_DIR/apiagent"|"$BIN_DIR/aiandrelay"|"$BIN_DIR/aiandrelay.js")
+      "$BIN_DIR/aclaude"|"$BIN_DIR/acodex"|"$BIN_DIR/aopencode"|"$BIN_DIR/api"|"$BIN_DIR/aiandrelay"|"$BIN_DIR/aiandrelay.js")
         rm -f "$path"
         ok "Removed old aiandrelay shadow command: $path"
         ;;
@@ -147,7 +153,7 @@ remove_legacy_shadow_wrapper opencode
 # --- 4. Link into the current PATH when possible -----------------------------
 # Our command names are always force-updated (ln -sf). Stale links from a prior
 # AIANDRELAY_HOME (e.g. /tmp/…) or older install are replaced, not skipped.
-OUR_COMMANDS="aiandrelay aclaude aopencode acodex apiagent aprime ahermes aomp"
+OUR_COMMANDS="aiandrelay aclaude aopencode acodex api aprime ahermes aomp"
 
 find_writable_path_dir() {
   old_ifs="$IFS"
@@ -248,6 +254,16 @@ for dir in "$HOME/.bun/bin" "$HOME/.local/bin"; do
       ok "Updated stale $dest → $BIN_DIR/$name"
     fi
   done
+done
+
+# Drop renamed apiagent links left on PATH from older installs
+for dir in ${LINK_DIR:+"$LINK_DIR"} "$HOME/.bun/bin" "$HOME/.local/bin"; do
+  [ -n "$dir" ] && [ -d "$dir" ] && [ -w "$dir" ] || continue
+  dest="$dir/apiagent"
+  if is_aiandrelay_owned "$dest"; then
+    rm -f "$dest"
+    ok "Removed old alias link: $dest"
+  fi
 done
 
 # --- 5. Help the user get it on PATH permanently -----------------------------

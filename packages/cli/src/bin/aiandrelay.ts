@@ -97,7 +97,7 @@ async function runInteractiveLauncher(): Promise<void> {
     options: [
       { value: "codex", label: "Codex", hint: "acodex" },
       { value: "claude", label: "Claude Code", hint: "aclaude" },
-      { value: "pi", label: "Pi Code", hint: "apiagent" },
+      { value: "pi", label: "Pi Code", hint: "api" },
       { value: "opencode", label: "OpenCode", hint: "aopencode" },
       { value: "hermes", label: "Hermes Agent", hint: "ahermes" },
       { value: "omp", label: "omp", hint: "aomp" },

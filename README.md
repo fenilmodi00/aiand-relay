@@ -25,7 +25,7 @@ Nothing about your agent install changes. The relay injects a base URL and API k
 
 ## Install
 
-The one-liner installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `apiagent`, `aprime`, `ahermes`, and `aomp` commands to `~/.aiandrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
+The one-liner installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`, and `aomp` commands to `~/.aiandrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
 
 ```bash
 curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
@@ -55,7 +55,7 @@ Or launch one directly (each has a short alias):
 aiandrelay claude       # alias: aclaude
 aiandrelay codex        # alias: acodex
 aiandrelay opencode     # alias: aopencode
-aiandrelay pi           # alias: apiagent
+aiandrelay pi           # alias: api
 aiandrelay prime        # alias: aprime  (PrimeIntellect Prime Agent)
 aiandrelay hermes       # alias: ahermes (Nous Research Hermes Agent)
 aiandrelay omp          # alias: aomp    (Oh My Pi)

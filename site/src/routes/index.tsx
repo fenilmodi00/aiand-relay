@@ -43,7 +43,7 @@ const agents: Agent[] = [
   },
   {
     name: "Pi Code",
-    command: "apiagent",
+    command: "api",
     status: "Stable",
     mark: <PiMark />,
     blurb:
@@ -81,7 +81,7 @@ const steps = [
     body: (
       <>
         Run the one-liner. It drops <code>aiandrelay</code> plus <code>aclaude</code>,{" "}
-        <code>acodex</code>, <code>aopencode</code>, <code>apiagent</code>, <code>aprime</code>,{" "}
+        <code>acodex</code>, <code>aopencode</code>, <code>api</code>, <code>aprime</code>,{" "}
         <code>ahermes</code>, and <code>aomp</code> onto your PATH and installs Bun if you
         don&apos;t have it.
       </>
@@ -130,7 +130,7 @@ const features = [
 ];
 
 const stats = [
-  { value: "5", label: "coding agents" },
+  { value: "7", label: "coding agents" },
   { value: "1", label: "install command" },
   { value: "0", label: "config files rewritten" },
 ];

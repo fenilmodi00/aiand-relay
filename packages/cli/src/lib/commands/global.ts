@@ -15,7 +15,7 @@ Usage:
   aiandrelay chatgpt [--model <model>] [--restore]  (alpha)
   aiandrelay codex [...]       (alias: acodex)
   aiandrelay claude [...]      (alias: aclaude)
-  aiandrelay pi [...]          (alias: apiagent)
+  aiandrelay pi [...]          (alias: api)
   aiandrelay opencode [...]    (alias: aopencode)
   aiandrelay prime [...]       (alias: aprime)
   aiandrelay hermes [...]      (alias: ahermes)

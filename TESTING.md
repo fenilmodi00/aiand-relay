@@ -139,14 +139,14 @@ export AIAND_API_KEY="..."
 
 pnpm -F @aiandrelay/cli exec aiandrelay pi
 pnpm -F @aiandrelay/cli exec aiandrelay picode
-apiagent
+api
 ```
 
 Run Pi Code headlessly through ai&:
 
 ```bash
 pnpm -F @aiandrelay/cli exec aiandrelay pi -p "Say hi"
-apiagent -p "Say hi"
+api -p "Say hi"
 ```
 
 ### omp (Oh My Pi)

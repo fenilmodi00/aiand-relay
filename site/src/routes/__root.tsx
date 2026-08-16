@@ -5,7 +5,7 @@ import appCss from "../styles/app.css?url";
 
 // Absolute URLs required for Discord, WhatsApp, Slack, Telegram, iMessage, LinkedIn.
 const SITE_URL = "https://aiand-relay.vercel.app";
-const OG_IMAGE = `${SITE_URL}/og-banner.png`;
+const OG_IMAGE = `${SITE_URL}/image.png`;
 const PAGE_TITLE = "ai& Relay - Run Claude Code, Codex, OpenCode & Pi Code on ai&";
 const PAGE_DESCRIPTION =
   "A local relay that points Claude Code, Codex, OpenCode, and Pi Code at open models on ai& - short commands, zero edits to your real tool config.";
@@ -30,8 +30,8 @@ export const Route = createRootRoute({
       { property: "og:image", content: OG_IMAGE },
       { property: "og:image:secure_url", content: OG_IMAGE },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
+      { property: "og:image:width", content: "1585" },
+      { property: "og:image:height", content: "937" },
       { property: "og:image:alt", content: "ai& Relay — run coding agents on open models" },
       // Twitter / X (also used as fallback by some crawlers)
       { name: "twitter:card", content: "summary_large_image" },

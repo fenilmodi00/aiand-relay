@@ -6,7 +6,7 @@
  *   # or:  irm https://…/install.mjs | node   (if published)
  */
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -99,7 +99,7 @@ const wrappers = [
   ["aclaude", ["claude"]],
   ["aopencode", ["opencode"]],
   ["acodex", ["codex"]],
-  ["apiagent", ["pi"]],
+  ["api", ["pi"]],
   ["aprime", ["prime"]],
   ["ahermes", ["hermes"]],
   ["aomp", ["omp"]],
@@ -110,6 +110,13 @@ for (const [name, args] of wrappers) {
   else writeUnixWrapper(name, args);
 }
 ok(`Wrappers installed → ${BIN_DIR}`);
+
+// Renamed alias: apiagent → api
+const legacyPiAlias = join(BIN_DIR, isWin ? "apiagent.cmd" : "apiagent");
+if (existsSync(legacyPiAlias)) {
+  unlinkSync(legacyPiAlias);
+  ok("Removed old alias: apiagent (now api)");
+}
 
 const pathSep = isWin ? ";" : ":";
 const onPath = (process.env.PATH ?? "").split(pathSep).some((p) => p === BIN_DIR);

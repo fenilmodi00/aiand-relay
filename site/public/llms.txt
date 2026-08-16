@@ -2,7 +2,7 @@
 
 > Use ai& models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, Pi Code, Prime Agent, Hermes Agent, and omp. aiandrelay injects ai& settings for a single run so your normal tool configs stay untouched.
 
-aiandrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`acodex`, `aclaude`, `aopencode`, `apiagent`, `aprime`, `ahermes`, `aomp`). For Claude Code and Codex CLI it routes the agent's API traffic to ai& through a local translation proxy; for OpenCode, Pi Code, Prime Agent, Hermes Agent, and omp it injects per-run provider config (they already speak ai&'s OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from aiand-relay.vercel.app.
+aiandrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`acodex`, `aclaude`, `aopencode`, `api`, `aprime`, `ahermes`, `aomp`). For Claude Code and Codex CLI it routes the agent's API traffic to ai& through a local translation proxy; for OpenCode, Pi Code, Prime Agent, Hermes Agent, and omp it injects per-run provider config (they already speak ai&'s OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from aiand-relay.vercel.app.
 
 This is the LLM-readable documentation file for the project. If you are an AI agent asked to install, configure, or use aiandrelay (headless or interactive), read this file first. It covers installation, configuration, every command, the available models, headless/agentic usage patterns, how to keep the tool up to date, and the routing architecture.
 
@@ -15,7 +15,7 @@ This is the LLM-readable documentation file for the project. If you are an AI ag
 
 ## Install
 
-One command installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `apiagent`, `aprime`, `ahermes`, and `aomp` commands to `~/.aiandrelay/bin/` and installs Bun for you if it isn't already present:
+One command installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`, and `aomp` commands to `~/.aiandrelay/bin/` and installs Bun for you if it isn't already present:
 
 ```
 curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
@@ -24,7 +24,7 @@ curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
 After install, restart your shell (or run the `export PATH=...` line it prints) so the commands are on PATH. The install:
 
 - Downloads the self-contained JS bundle to `~/.aiandrelay/bin/aiandrelay.js`.
-- Writes shell wrappers (`aiandrelay`, `acodex`, `aclaude`, `aopencode`, `apiagent`, `aprime`, `ahermes`, `aomp`) that run the bundle with `bun`.
+- Writes shell wrappers (`aiandrelay`, `acodex`, `aclaude`, `aopencode`, `api`, `aprime`, `ahermes`, `aomp`) that run the bundle with `bun`.
 - Links them into a writable directory on your PATH.
 - Does NOT install the underlying agent CLIs. If a tool is missing, aiandrelay prints its official install command and exits (omp: `bun install -g @oh-my-pi/pi-coding-agent`; Prime Agent: `curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh`).
 
@@ -61,7 +61,7 @@ aiandrelay help | --help | -h             # print this usage
 
 aiandrelay codex [...]        # alias: acodex   (Codex CLI)
 aiandrelay claude [...]       # alias: aclaude  (Claude Code)
-aiandrelay pi [...]           # alias: apiagent      (Pi Code)
+aiandrelay pi [...]           # alias: api      (Pi Code)
 aiandrelay opencode [...]     # alias: aopencode (OpenCode)
 aiandrelay prime [...]        # alias: aprime   (Prime Agent, PrimeIntellect)
 aiandrelay hermes [...]       # alias: ahermes  (Hermes Agent, Nous Research)
@@ -138,7 +138,7 @@ Both wrappers spawn the agent pointed at the local ai& proxy and pass your flags
 If you are an orchestrating agent running inside Claude Code, Codex, or another CLI that has its own native subagent/delegation tool, prefer this pattern for non-trivial aiandrelay work:
 
 1. Spawn a native subagent first.
-2. Tell that subagent to run the needed `aiandrelay` command itself (`acodex`, `aclaude`, `aopencode`, or `apiagent`) with a tight task, explicit files, `< /dev/null`, and the guardrails below.
+2. Tell that subagent to run the needed `aiandrelay` command itself (`acodex`, `aclaude`, `aopencode`, or `api`) with a tight task, explicit files, `< /dev/null`, and the guardrails below.
 3. Have the subagent wait for the delegated aiandrelay run, inspect its result/diff, and report only the useful summary back to you.
 
 Do this instead of having the main orchestrating agent call `acodex`/`aclaude` directly for every delegated edit. It keeps the main agent's context and inference budget focused on coordination/review, lets the native subagent own the details of launching and monitoring aiandrelay, and works especially well when Claude Code delegates to a subagent that then uses Codex through `acodex`.
@@ -222,7 +222,7 @@ There are two harness families behind the tools:
 
 - **Proxied harnesses - Claude Code, Codex CLI.** `aclaude` and `acodex` spawn a shared local daemon and route the agent's `/v1/*` traffic through it. The daemon translates the agent's native wire format (Anthropic Messages for Claude, OpenAI Responses for Codex) to ai&'s chat-completions API and back. Per run: it resolves the model, ensures the daemon, registers a session with your token, prints a banner, spawns the agent pointed at the local proxy, tracks cost, and deregisters on exit. Nothing is written to your real agent config - close it and your setup is exactly as it was.
 
-- **Spawned harnesses - OpenCode, Pi Code, Prime Agent, Hermes Agent, omp.** `aopencode`, `apiagent`, `aprime`, `ahermes`, and `aomp` spawn the agent binary directly. The binary talks to ai& itself, using ephemeral config injected only for that launch (OpenCode), a temporary `models.json` on disk (Pi), a relay-owned config dir under `~/.aiandrelay/prime-agent` (Prime Agent), a relay-owned `HERMES_HOME` under `~/.aiandrelay/hermes` (Hermes Agent; your real `~/.hermes` stays untouched), or a relay-owned `models.yml` under `~/.aiandrelay/omp` via `PI_CODING_AGENT_DIR` (omp; your personal `~/.omp` stays untouched). No daemon, no proxy.
+- **Spawned harnesses - OpenCode, Pi Code, Prime Agent, Hermes Agent, omp.** `aopencode`, `api`, `aprime`, `ahermes`, and `aomp` spawn the agent binary directly. The binary talks to ai& itself, using ephemeral config injected only for that launch (OpenCode), a temporary `models.json` on disk (Pi), a relay-owned config dir under `~/.aiandrelay/prime-agent` (Prime Agent), a relay-owned `HERMES_HOME` under `~/.aiandrelay/hermes` (Hermes Agent; your real `~/.hermes` stays untouched), or a relay-owned `models.yml` under `~/.aiandrelay/omp` via `PI_CODING_AGENT_DIR` (omp; your personal `~/.omp` stays untouched). No daemon, no proxy.
 
 The daemon is one persistent local process shared by all proxied sessions. If you ever need to stop it manually:
 
