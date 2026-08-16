@@ -720,14 +720,7 @@ function OmpMark() {
   // Compact "O" with an inset square — distinct from Pi's block mark.
   return (
     <svg className="size-[22px]" viewBox="0 0 24 24" aria-hidden="true">
-      <circle
-        cx="12"
-        cy="12"
-        r="8.25"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
+      <circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" strokeWidth="1.8" />
       <rect x="9" y="9" width="6" height="6" rx="1.2" fill="currentColor" />
     </svg>
   );
