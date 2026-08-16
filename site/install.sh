@@ -6,8 +6,8 @@
 # Installs the aiandrelay CLI as a Bun-target JS bundle at
 # ~/.aiandrelay/bin/aiandrelay.js, with a `aiandrelay` wrapper script on
 # PATH that runs it with `bun`. Installs Bun for the user if `bun` isn't on
-# PATH. Also installs `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`, and `aomp`
-# convenience wrappers.
+# PATH. Also installs `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`,
+# `adeepseek`, `agrok`, and `aomp` convenience wrappers.
 #
 # After install, prompts for a required ai& API key via /dev/tty (so
 # `curl | sh` still works). Verifies the key with GET /v1/models before
@@ -69,7 +69,7 @@ exec bun "$BIN_DIR/aiandrelay.js" "\$@"
 EOF
 chmod +x "$BIN_DIR/aiandrelay"
 
-# Short aliases: aclaude / aopencode / acodex / api / aprime / ahermes / aomp
+# Short aliases: aclaude / aopencode / acodex / api / aprime / ahermes / adeepseek / agrok / aomp
 cat > "$BIN_DIR/aclaude" <<EOF
 #!/usr/bin/env sh
 exec bun "$BIN_DIR/aiandrelay.js" claude "\$@"
@@ -106,13 +106,25 @@ exec bun "$BIN_DIR/aiandrelay.js" hermes "\$@"
 EOF
 chmod +x "$BIN_DIR/ahermes"
 
+cat > "$BIN_DIR/adeepseek" <<EOF
+#!/usr/bin/env sh
+exec bun "$BIN_DIR/aiandrelay.js" deepseek "\$@"
+EOF
+chmod +x "$BIN_DIR/adeepseek"
+
+cat > "$BIN_DIR/agrok" <<EOF
+#!/usr/bin/env sh
+exec bun "$BIN_DIR/aiandrelay.js" grok "\$@"
+EOF
+chmod +x "$BIN_DIR/agrok"
+
 cat > "$BIN_DIR/aomp" <<EOF
 #!/usr/bin/env sh
 exec bun "$BIN_DIR/aiandrelay.js" omp "\$@"
 EOF
 chmod +x "$BIN_DIR/aomp"
 
-ok "Wrappers installed: aiandrelay, aclaude, aopencode, acodex, api, aprime, ahermes, aomp → $BIN_DIR"
+ok "Wrappers installed: aiandrelay, aclaude, aopencode, acodex, api, aprime, ahermes, adeepseek, agrok, aomp → $BIN_DIR"
 
 # Renamed alias: apiagent → api
 if [ -e "$BIN_DIR/apiagent" ] || [ -L "$BIN_DIR/apiagent" ]; then
@@ -153,7 +165,7 @@ remove_legacy_shadow_wrapper opencode
 # --- 4. Link into the current PATH when possible -----------------------------
 # Our command names are always force-updated (ln -sf). Stale links from a prior
 # AIANDRELAY_HOME (e.g. /tmp/…) or older install are replaced, not skipped.
-OUR_COMMANDS="aiandrelay aclaude aopencode acodex api aprime ahermes aomp"
+OUR_COMMANDS="aiandrelay aclaude aopencode acodex api aprime ahermes adeepseek agrok aomp"
 
 find_writable_path_dir() {
   old_ifs="$IFS"

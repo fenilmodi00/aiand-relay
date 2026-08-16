@@ -5,6 +5,8 @@ export type HarnessContext = {
   apiKey?: string;
   apiKeyFromFlag?: boolean;
   main?: string;
+  /** `--last <window>` for the usage report, e.g. "7d". */
+  last?: string;
   passthrough?: string[];
   json?: boolean;
   restore?: boolean;
@@ -44,10 +46,10 @@ export function defineHarness(impl: Harness): Harness {
  *   daemon's ai& client, tracks cost via a CostTracker, and deregisters
  *   on exit. The lifecycle lives in `runProxiedSession` (proxied-session.ts).
  *
- * - **SpawnedHarness** - OpenCode, Pi, Prime, Hermes, omp. `run` spawns the agent
+ * - **SpawnedHarness** - OpenCode, Pi, Prime, Hermes, DeepSeek, Grok, omp. `run` spawns the agent
  *   binary directly; the binary's own provider plugin talks to ai& (OpenCode)
  *   or reads injected config from disk (Pi / Prime models.json, Hermes
- *   config.yaml, omp models.yml). No daemon, no proxy, no CostTracker, no keepalive.
+ *   config.yaml, DeepSeek cordis patch, Grok catalog env, omp models.yml). No daemon, no proxy, no CostTracker, no keepalive.
  *
  * Recording this split in the type system (and in CONTEXT.md) stops the
  * abstraction from hiding two architectures as one. The orphan "codex-app"

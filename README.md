@@ -1,6 +1,6 @@
 # ai& Relay
 
-Run your local coding agents on [ai&](https://docs.aiand.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, **Prime Agent**, **Hermes Agent**, and **omp** all talk to open-weight models (DeepSeek V4 Flash, GLM 5.2, Kimi K2.7 Code, Motif 3, …) instead of their default backends.
+Run your local coding agents on [ai&](https://docs.aiand.com/) open models. One install, and **Claude Code**, **Codex**, **OpenCode**, **Pi**, **Prime Agent**, **Hermes Agent**, **DeepSeek Harness**, **Grok Build**, and **omp** all talk to open-weight models (DeepSeek V4 Flash, GLM 5.2, Kimi K2.7 Code, Motif 3, …) instead of their default backends.
 
 ```bash
 curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
@@ -19,13 +19,13 @@ aiandrelay claude     # Claude Code on ai& models (alias: aclaude)
 ai& serves open models over an OpenAI-compatible API. It does **not** speak the Anthropic Messages API (Claude Code) or the OpenAI Responses API (Codex). ai& Relay runs a small local daemon that translates those wire formats to ai& `/chat/completions` on the fly, so your agent believes it is talking to its native backend while every token is served by ai&.
 
 - **Proxied harnesses** (Claude Code, Codex): a local daemon translates each request/response, tracks cost, retries transient failures, trims context to fit, and refuses native web_search server tools with a clear error.
-- **Spawned harnesses** (OpenCode, Pi, Prime Agent, Hermes Agent, omp): launched with a generated provider config pointed at ai&, no proxy needed (they already speak ai&'s OpenAI-compatible format).
+- **Spawned harnesses** (OpenCode, Pi, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, omp): launched with a generated provider config pointed at ai&, no proxy needed (they already speak ai&'s OpenAI-compatible format).
 
 Nothing about your agent install changes. The relay injects a base URL and API key per session and writes nothing permanent to your agent's config.
 
 ## Install
 
-The one-liner installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`, and `aomp` commands to `~/.aiandrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
+The one-liner installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, and `aomp` commands to `~/.aiandrelay/bin/` and installs [Bun](https://bun.sh) for you if it isn't already present:
 
 ```bash
 curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
@@ -39,7 +39,7 @@ aiandrelay configure
 
 You'll be asked for an ai& API key (<https://docs.aiand.com/>). It is stored in `~/.aiandrelay/` and never leaves your machine. You can also set `AIAND_API_KEY` in the environment instead.
 
-If the underlying agent CLI (Claude Code, Codex, etc.) isn't installed, the relay prints its official install command and exits. It never installs agents for you.
+If the underlying agent CLI (Claude Code, Codex, etc.) isn't installed, the relay offers to run its official install command (with your consent) or prints it and exits.
 
 ## Usage
 
@@ -58,8 +58,13 @@ aiandrelay opencode     # alias: aopencode
 aiandrelay pi           # alias: api
 aiandrelay prime        # alias: aprime  (PrimeIntellect Prime Agent)
 aiandrelay hermes       # alias: ahermes (Nous Research Hermes Agent)
+aiandrelay deepseek     # alias: adeepseek (DeepSeek Harness, alpha)
+aiandrelay grok         # alias: agrok   (Grok Build UI on ai& models)
 aiandrelay omp          # alias: aomp    (Oh My Pi)
 aiandrelay chatgpt      # alpha: ChatGPT Desktop session with restore (alias: codex-app)
+aiandrelay usage        # local spend report (optional: --last 7d)
+aiandrelay update       # update to the latest release
+aiandrelay daemon install   # auto-start daemon at login (macOS/Linux)
 ```
 
 Any extra arguments are passed straight through to the underlying agent:

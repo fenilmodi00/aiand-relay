@@ -11,7 +11,13 @@ export function printHelp() {
 
 Usage:
   aiandrelay configure
+  aiandrelay update            update to the latest release
   aiandrelay whoami
+  aiandrelay usage [--last 7d] tracked local spend by model and tool
+  aiandrelay daemon install    start the daemon at login (macOS/Linux)
+  aiandrelay daemon uninstall  stop starting the daemon at login
+  aiandrelay daemon status     show auto-start service status
+  aiandrelay daemon stop       stop the running daemon
   aiandrelay chatgpt [--model <model>] [--restore]  (alpha)
   aiandrelay codex [...]       (alias: acodex)
   aiandrelay claude [...]      (alias: aclaude)
@@ -19,9 +25,11 @@ Usage:
   aiandrelay opencode [...]    (alias: aopencode)
   aiandrelay prime [...]       (alias: aprime)
   aiandrelay hermes [...]      (alias: ahermes)
+  aiandrelay deepseek [...]    (alpha, alias: adeepseek)
+  aiandrelay grok [...]        (alias: agrok; Grok's UI on ai& models)
   aiandrelay omp [...]         (alias: aomp)
 
-Extra args after codex/claude/pi/opencode/prime/hermes/omp are passed through.
+Extra args after codex/claude/pi/opencode/prime/hermes/deepseek/grok/omp are passed through.
 ChatGPT App support is alpha; run \`aiandrelay chatgpt --restore\` (alias: codex-app) to restore the previous desktop config.
 
 Codex flags:
