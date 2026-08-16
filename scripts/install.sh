@@ -9,8 +9,11 @@
 # PATH. Also installs `aclaude`, `aopencode`, `acodex`, `apiagent`, `aprime`, `ahermes`, and `aomp`
 # convenience wrappers.
 #
-# After install, the CLI prompts once for an ai& API key on first use
-# (Enter skips - the key is optional). The CLI self-updates in the background.
+# After install, prompts for a required ai& API key via /dev/tty (so
+# `curl | sh` still works). Verifies the key with GET /v1/models before
+# saving. Skips only when ~/.aiandrelay/config.json already has a literal
+# key — shell env and project .env do not count. The CLI self-updates in
+# the background.
 
 set -euo pipefail
 
@@ -142,6 +145,10 @@ remove_legacy_shadow_wrapper codex
 remove_legacy_shadow_wrapper opencode
 
 # --- 4. Link into the current PATH when possible -----------------------------
+# Our command names are always force-updated (ln -sf). Stale links from a prior
+# AIANDRELAY_HOME (e.g. /tmp/…) or older install are replaced, not skipped.
+OUR_COMMANDS="aiandrelay aclaude aopencode acodex apiagent aprime ahermes aomp"
+
 find_writable_path_dir() {
   old_ifs="$IFS"
   IFS=:
@@ -162,50 +169,86 @@ find_writable_path_dir() {
   return 1
 }
 
-if LINK_DIR="$(find_writable_path_dir)"; then
-  links_changed=0
-  links_skipped=0
+# True if dest is (or was) an aiandrelay-owned wrapper we should refresh.
+is_aiandrelay_owned() {
+  path="$1"
+  [ -e "$path" ] || [ -L "$path" ] || return 1
 
-  install_link() {
-    name="$1"
-    target="$2"
-    dest="$LINK_DIR/$name"
-
-    if [ -e "$dest" ] || [ -L "$dest" ]; then
-      current="$(readlink "$dest" 2>/dev/null || true)"
-      case "$current" in
-        "$BIN_DIR"/*)
-          ln -sf "$target" "$dest"
-          links_changed=$((links_changed + 1))
-          return 0
-          ;;
-        *)
-          links_skipped=$((links_skipped + 1))
-          info "Skipped $dest (already exists; remove it or put $BIN_DIR earlier on PATH to use aiandrelay here)"
-          return 0
-          ;;
+  if [ -L "$path" ]; then
+    target="$(readlink "$path" 2>/dev/null || true)"
+    case "$target" in
+      *aiandrelay*|*aiand-test*)
+        return 0
+        ;;
+    esac
+    # Symlink to one of our wrapper scripts under any …/bin/<name>
+    for name in $OUR_COMMANDS; do
+      case "$target" in
+        */bin/"$name") return 0 ;;
       esac
-    fi
+    done
+    return 1
+  fi
 
-    ln -s "$target" "$dest"
+  [ -f "$path" ] && grep -Fqs "aiandrelay.js" "$path"
+}
+
+install_link() {
+  name="$1"
+  target="$2"
+  dest="$3"
+
+  ln -sf "$target" "$dest"
+}
+
+links_changed=0
+
+# Prefer the first writable PATH entry for fresh links…
+if LINK_DIR="$(find_writable_path_dir)"; then
+  for name in $OUR_COMMANDS; do
+    install_link "$name" "$BIN_DIR/$name" "$LINK_DIR/$name"
     links_changed=$((links_changed + 1))
-  }
-
-  install_link aiandrelay "$BIN_DIR/aiandrelay"
-  install_link aclaude "$BIN_DIR/aclaude"
-  install_link aopencode "$BIN_DIR/aopencode"
-  install_link acodex "$BIN_DIR/acodex"
-  install_link apiagent "$BIN_DIR/apiagent"
-  install_link aprime "$BIN_DIR/aprime"
-  install_link ahermes "$BIN_DIR/ahermes"
-  install_link aomp "$BIN_DIR/aomp"
-  if [ "$links_changed" -gt 0 ]; then
-    ok "Linked $links_changed command(s) into current PATH → $LINK_DIR"
-  fi
-  if [ "$links_skipped" -gt 0 ]; then
-    info "Skipped $links_skipped existing command(s) in $LINK_DIR"
-  fi
+  done
+  ok "Linked $links_changed command(s) into current PATH → $LINK_DIR"
 fi
+
+# …and refresh any leftover aiandrelay wrappers elsewhere on PATH (old homes).
+old_ifs="$IFS"
+IFS=:
+for dir in $PATH; do
+  IFS="$old_ifs"
+  [ -n "$dir" ] || continue
+  [ "$dir" != "$BIN_DIR" ] || continue
+  [ -d "$dir" ] && [ -w "$dir" ] || continue
+  if [ -n "${LINK_DIR:-}" ] && [ "$dir" = "$LINK_DIR" ]; then
+    continue
+  fi
+  for name in $OUR_COMMANDS; do
+    dest="$dir/$name"
+    if is_aiandrelay_owned "$dest"; then
+      install_link "$name" "$BIN_DIR/$name" "$dest"
+      ok "Updated stale $dest → $BIN_DIR/$name"
+    fi
+  done
+  IFS=:
+done
+IFS="$old_ifs"
+
+# Also sweep common install locations even if they aren't on PATH right now
+# (e.g. leftover ~/.bun/bin links from AIANDRELAY_HOME=/tmp/…).
+for dir in "$HOME/.bun/bin" "$HOME/.local/bin"; do
+  [ -d "$dir" ] && [ -w "$dir" ] || continue
+  if [ -n "${LINK_DIR:-}" ] && [ "$dir" = "$LINK_DIR" ]; then
+    continue
+  fi
+  for name in $OUR_COMMANDS; do
+    dest="$dir/$name"
+    if is_aiandrelay_owned "$dest"; then
+      install_link "$name" "$BIN_DIR/$name" "$dest"
+      ok "Updated stale $dest → $BIN_DIR/$name"
+    fi
+  done
+done
 
 # --- 5. Help the user get it on PATH permanently -----------------------------
 path_line="export PATH=\"$BIN_DIR:\$PATH\""
@@ -246,5 +289,146 @@ if PATH="$BIN_DIR:$PATH" aiandrelay --version >/dev/null 2>&1; then
   PATH="$BIN_DIR:$PATH" aiandrelay __telemetry-install-completed >/dev/null 2>&1 || true
 fi
 
+# --- 6. Required ai& API key (config.json only; /dev/tty for curl|sh) --------
+AIAND_DOCS_URL="https://docs.aiand.com/"
+CONFIG_JSON="$INSTALL_DIR/config.json"
+ENV_REF_KEY='{env:AIAND_API_KEY}'
+
+config_has_literal_api_key() {
+  [ -f "$CONFIG_JSON" ] || return 1
+  # Prefer bun (always available after this install) for reliable JSON parse.
+  if command -v bun >/dev/null 2>&1; then
+    bun -e '
+      const fs = require("fs");
+      const path = process.argv[1];
+      const envRef = process.argv[2];
+      let raw;
+      try { raw = fs.readFileSync(path, "utf8"); } catch { process.exit(1); }
+      let data;
+      try { data = JSON.parse(raw); } catch { process.exit(1); }
+      const key = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
+      if (!key || key === envRef) process.exit(1);
+      process.exit(0);
+    ' "$CONFIG_JSON" "$ENV_REF_KEY"
+    return $?
+  fi
+  return 1
+}
+
+# Ping ai& the same way the CLI does: GET /v1/models with Bearer auth.
+# Prints a one-line reason on stderr; exit 0 only when the key is accepted.
+verify_api_key() {
+  key="$1"
+  AIAND_INSTALL_KEY="$key" bun -e '
+    const apiKey = (process.env.AIAND_INSTALL_KEY ?? "").trim();
+    const base = (process.env.AIAND_BASE_URL ?? "https://api.aiand.com/v1").replace(/\/$/, "");
+    if (!apiKey) {
+      console.error("empty key");
+      process.exit(1);
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    try {
+      const res = await fetch(`${base}/models`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: controller.signal,
+      });
+      if (res.ok) process.exit(0);
+      if (res.status === 401 || res.status === 403) {
+        console.error(`rejected by ai& (HTTP ${res.status}) — key is invalid`);
+        process.exit(1);
+      }
+      console.error(`ai& returned HTTP ${res.status}`);
+      process.exit(1);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(msg.includes("abort") ? "timed out contacting ai&" : `could not reach ai& (${msg})`);
+      process.exit(1);
+    } finally {
+      clearTimeout(timer);
+    }
+  ' 2>/tmp/aiandrelay-key-check.$$
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    reason="$(tr -d '\r' </tmp/aiandrelay-key-check.$$ 2>/dev/null | head -n 1)"
+    rm -f /tmp/aiandrelay-key-check.$$
+    printf "%s" "${reason:-key check failed}"
+    return 1
+  fi
+  rm -f /tmp/aiandrelay-key-check.$$
+  return 0
+}
+
+write_api_key_config() {
+  key="$1"
+  mkdir -p "$INSTALL_DIR"
+  tmp="$CONFIG_JSON.tmp.$$"
+  # Write via bun so keys with quotes/newlines stay valid JSON.
+  if ! AIAND_INSTALL_KEY="$key" bun -e '
+    const fs = require("fs");
+    const apiKey = (process.env.AIAND_INSTALL_KEY ?? "").trim();
+    if (!apiKey) process.exit(1);
+    fs.writeFileSync(process.argv[1], JSON.stringify({ apiKey }) + "\n", { mode: 0o600 });
+  ' "$tmp"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  chmod 600 "$tmp" 2>/dev/null || true
+  mv -f "$tmp" "$CONFIG_JSON"
+  chmod 600 "$CONFIG_JSON" 2>/dev/null || true
+  return 0
+}
+
+prompt_required_api_key() {
+  if [ ! -r /dev/tty ] || [ ! -w /dev/tty ]; then
+    err "Need an interactive terminal to enter your ai& API key."
+    info "Re-run in a terminal, or save a key to $CONFIG_JSON, then try again."
+    info "Get a key: $AIAND_DOCS_URL"
+    exit 1
+  fi
+
+  bold "ai& API key required"
+  info "Get a key at $AIAND_DOCS_URL"
+  info "Paste it below (input is hidden). We’ll verify it against ai& before saving."
+
+  # Restore echo if the user hits Ctrl-C mid-password.
+  trap 'stty echo </dev/tty 2>/dev/null || true; exit 130' INT TERM
+
+  while true; do
+    printf "  ai& API key: " >/dev/tty
+    stty -echo </dev/tty 2>/dev/null || true
+    # -r: keep backslashes; read from the real terminal, not the curl pipe.
+    IFS= read -r api_key </dev/tty || api_key=""
+    stty echo </dev/tty 2>/dev/null || true
+    printf "\n" >/dev/tty
+
+    api_key="$(printf '%s' "$api_key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    if [ -z "$api_key" ]; then
+      err "API key required — paste a key to continue."
+      continue
+    fi
+
+    info "Checking key with ai&…"
+    if ! reason="$(verify_api_key "$api_key")"; then
+      err "Key not accepted: ${reason:-check failed}"
+      info "Get a key: $AIAND_DOCS_URL"
+      continue
+    fi
+    ok "Key verified with ai&"
+
+    if write_api_key_config "$api_key"; then
+      ok "API key saved → $CONFIG_JSON"
+      trap - INT TERM
+      return 0
+    fi
+    err "Could not write $CONFIG_JSON — try again."
+  done
+}
+
+if config_has_literal_api_key; then
+  ok "API key already configured in $CONFIG_JSON"
+else
+  prompt_required_api_key
+fi
+
 bold "Done. Run \`aiandrelay help\` to get started."
-info "On first run (ahermes, aclaude, … or aiandrelay), you’ll be prompted for an ai& API key — or open https://docs.aiand.com/ from the prompt."
