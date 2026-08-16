@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "tanstack-start",
-  "buildCommand": "bash \"$(git rev-parse --show-toplevel)/scripts/vercel-build.sh\"",
+  "buildCommand": "bash scripts/vercel-build.sh",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
