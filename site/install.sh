@@ -240,4 +240,4 @@ if PATH="$BIN_DIR:$PATH" aiandrelay --version >/dev/null 2>&1; then
 fi
 
 bold "Done. Run \`aiandrelay help\` to get started."
-info "On first run, aiandrelay will ask for your ai& API key (Enter to skip)."
+info "On first run (ahermes, aclaude, … or aiandrelay), you'll be prompted for an ai& API key — or open https://docs.aiand.com/ from the prompt."

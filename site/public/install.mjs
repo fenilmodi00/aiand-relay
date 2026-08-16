@@ -146,4 +146,6 @@ if (verify.status === 0) {
 }
 
 console.log("Done. Run `aiandrelay help` to get started.");
-info("On first run, aiandrelay will ask for your ai& API key (Enter to skip).");
+info(
+  "On first run (ahermes, aclaude, … or aiandrelay), you'll be prompted for an ai& API key — or open https://docs.aiand.com/ from the prompt.",
+);
