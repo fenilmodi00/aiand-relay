@@ -14,6 +14,8 @@
     "build:bundle": "node scripts/build-bundle.mjs",
     "build:site": "pnpm build:bundle && pnpm --dir site exec convex codegen --typecheck disable && pnpm --filter @aiandrelay/site build",
     "build:site:preview": "pnpm build:bundle && pnpm --filter @aiandrelay/site build",
+    "heroku-postbuild": "bash scripts/build-io-build.sh",
+    "start": "node site/.output/server/index.mjs",
     "bump-version": "bash scripts/bump-version.sh",
     "dev": "pnpm -F @aiandrelay/cli dev",
     "dev:site": "pnpm --filter @aiandrelay/site dev",

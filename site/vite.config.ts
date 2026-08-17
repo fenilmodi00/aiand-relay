@@ -5,16 +5,22 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
+const nitroPreset = process.env.NITRO_PRESET ?? "vercel";
+
 export default defineConfig({
   server: {
     port: 3000,
   },
   plugins: [
     nitro({
-      preset: "vercel",
-      output: {
-        dir: "../.vercel/output",
-      },
+      preset: nitroPreset,
+      ...(nitroPreset === "vercel"
+        ? {
+            output: {
+              dir: "../.vercel/output",
+            },
+          }
+        : {}),
     }),
     tsConfigPaths(),
     tanstackStart({
