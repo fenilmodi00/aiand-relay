@@ -9,8 +9,9 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { RELEASE_ORIGIN } from "./release-origin.mjs";
 
-const ORIGIN = process.env.AIANDRELAY_ORIGIN ?? "https://aiand-relay-6eb9031f.onbld.com";
+const ORIGIN = process.env.AIANDRELAY_ORIGIN ?? RELEASE_ORIGIN;
 const INSTALL_DIR = process.env.AIANDRELAY_HOME ?? join(homedir(), ".aiandrelay");
 const BIN_DIR = join(INSTALL_DIR, "bin");
 const isWin = process.platform === "win32";

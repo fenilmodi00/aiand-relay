@@ -1,6 +1,6 @@
 {
   "name": "aiandrelay",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "private": true,
   "description": "Use ai& models in Claude Code, OpenCode, Codex, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp",
   "license": "MIT",

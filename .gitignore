@@ -154,7 +154,6 @@ images-test/*
 /scripts/bench-vision-out/*
 
 /site/public/install.sh
-/site/public/latest.json
 /site/public/aiandrelay.js
 
 MVP-PLAN.md

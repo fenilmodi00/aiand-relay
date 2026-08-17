@@ -10,6 +10,7 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { RELEASE_ORIGIN } from "./release-origin.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const VERSION = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version;
@@ -57,6 +58,8 @@ run("bun", [
   "--production",
   "--define",
   `process.env.AIANDRELAY_VERSION="${VERSION}"`,
+  "--define",
+  `process.env.AIANDRELAY_RELEASE_ORIGIN="${RELEASE_ORIGIN}"`,
   "--outfile",
   join(publicDir, "aiandrelay.js"),
 ]);
@@ -68,7 +71,7 @@ console.log(`✓ bundle → site/public/aiandrelay.js and site/aiandrelay.js (${
 
 const manifest = {
   version: VERSION,
-  url: "https://aiand-relay-6eb9031f.onbld.com/aiandrelay.js",
+  url: `${RELEASE_ORIGIN}/aiandrelay.js`,
   publishedAt: new Date().toISOString(),
 };
 const json = `${JSON.stringify(manifest, null, 2)}\n`;

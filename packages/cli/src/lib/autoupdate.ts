@@ -16,7 +16,8 @@ import os from "node:os";
 import { VERSION } from "./version.js";
 
 /** Single origin for the landing page, manifest, and downloadable bundle. */
-const UPDATE_ORIGIN = "https://aiand-relay-6eb9031f.onbld.com";
+const UPDATE_ORIGIN =
+  process.env.AIANDRELAY_RELEASE_ORIGIN ?? "https://aiand-relay-6eb9031f.onbld.com";
 /** Override for testing/local mirrors; normally unset. */
 function resolveManifestUrl(): string {
   return process.env.AIANDRELAY_MANIFEST_URL ?? `${UPDATE_ORIGIN}/latest.json`;
