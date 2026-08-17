@@ -4,7 +4,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import appCss from "../styles/app.css?url";
 
 // Absolute URLs required for Discord, WhatsApp, Slack, Telegram, iMessage, LinkedIn.
-const SITE_URL = "https://aiand-relay.vercel.app";
+const SITE_URL = "https://aiand-relay-6eb9031f.onbld.com";
 const OG_IMAGE = `${SITE_URL}/image.png`;
 const PAGE_TITLE = "ai& Relay - Run Claude Code, Codex, OpenCode & Pi Code on ai&";
 const PAGE_DESCRIPTION =

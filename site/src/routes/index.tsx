@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
-const installCommand = "curl -fsSL https://aiand-relay.vercel.app/install.sh | sh";
+const installCommand = "curl -fsSL https://aiand-relay-6eb9031f.onbld.com/install.sh | sh";
 const githubUrl = "https://github.com/fenilmodi00/aiand-relay";
 const docsUrl = "https://github.com/fenilmodi00/aiand-relay/blob/main/README.md";
 const aiandApiKeysUrl = "https://docs.aiand.com/";
@@ -501,7 +501,7 @@ function Home() {
           >
             <span className="text-brand">$</span>
             <span className="max-[520px]:hidden">
-              curl -fsSL aiand-relay.vercel.app/install.sh | sh
+              curl -fsSL aiand-relay-6eb9031f.onbld.com/install.sh | sh
             </span>
             <span className="hidden max-[520px]:inline">curl … | sh</span>
             <span className="ml-1 text-white/50">{copyState === "copied" ? "✓" : "⧉"}</span>

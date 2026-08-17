@@ -16,7 +16,7 @@ import os from "node:os";
 import { VERSION } from "./version.js";
 
 /** Single origin for the landing page, manifest, and downloadable bundle. */
-const UPDATE_ORIGIN = "https://aiand-relay.vercel.app";
+const UPDATE_ORIGIN = "https://aiand-relay-6eb9031f.onbld.com";
 /** Override for testing/local mirrors; normally unset. */
 function resolveManifestUrl(): string {
   return process.env.AIANDRELAY_MANIFEST_URL ?? `${UPDATE_ORIGIN}/latest.json`;
@@ -224,7 +224,7 @@ export async function runUpdateCommand(): Promise<string> {
   if (!isInstalledBundle()) {
     return (
       "Not an installed bundle - this is a dev/source run, so there is nothing to update.\n" +
-      "Install with: curl -fsSL https://aiand-relay.vercel.app/install.sh | sh"
+      "Install with: curl -fsSL https://aiand-relay-6eb9031f.onbld.com/install.sh | sh"
     );
   }
   const manifest = await withTimeout(fetchManifest(), OVERALL_TIMEOUT_MS);

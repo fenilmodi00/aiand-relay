@@ -2,23 +2,23 @@
 
 > Use ai& models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp. aiandrelay injects ai& settings for a single run so your normal tool configs stay untouched.
 
-aiandrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`acodex`, `aclaude`, `aopencode`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, `aomp`). For Claude Code and Codex CLI it routes the agent's API traffic to ai& through a local translation proxy; for OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp it injects per-run provider config (they already speak ai&'s OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from aiand-relay.vercel.app.
+aiandrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`acodex`, `aclaude`, `aopencode`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, `aomp`). For Claude Code and Codex CLI it routes the agent's API traffic to ai& through a local translation proxy; for OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp it injects per-run provider config (they already speak ai&'s OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from aiand-relay-6eb9031f.onbld.com.
 
 This is the LLM-readable documentation file for the project. If you are an AI agent asked to install, configure, or use aiandrelay (headless or interactive), read this file first. It covers installation, configuration, every command, the available models, headless/agentic usage patterns, how to keep the tool up to date, and the routing architecture.
 
 - Project: https://github.com/fenilmodi00/aiand-relay
-- Website: https://aiand-relay.vercel.app
-- Installer: https://aiand-relay.vercel.app/install.sh
-- Version manifest: https://aiand-relay.vercel.app/latest.json
+- Website: https://aiand-relay-6eb9031f.onbld.com
+- Installer: https://aiand-relay-6eb9031f.onbld.com/install.sh
+- Version manifest: https://aiand-relay-6eb9031f.onbld.com/latest.json
 - README: https://github.com/fenilmodi00/aiand-relay/blob/main/README.md
-- This file: https://aiand-relay.vercel.app/llms.txt
+- This file: https://aiand-relay-6eb9031f.onbld.com/llms.txt
 
 ## Install
 
 One command installs the `aiandrelay`, `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, and `aomp` commands to `~/.aiandrelay/bin/` and installs Bun for you if it isn't already present:
 
 ```
-curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
+curl -fsSL https://aiand-relay-6eb9031f.onbld.com/install.sh | sh
 ```
 
 After install, restart your shell (or run the `export PATH=...` line it prints) so the commands are on PATH. The install:
@@ -213,15 +213,15 @@ Per-task cost varies a lot with how verbose the agent is. Mechanical, well-scope
 
 ## Keeping aiandrelay up to date
 
-The installed binary self-updates automatically in the background. The check is throttled and bounded, never throws, and runs before argument parsing - so even `aiandrelay help` keeps an install current. The update is pulled from https://aiand-relay.vercel.app/latest.json, which contains `version`, `url`, and `publishedAt`.
+The installed binary self-updates automatically in the background. The check is throttled and bounded, never throws, and runs before argument parsing - so even `aiandrelay help` keeps an install current. The update is pulled from https://aiand-relay-6eb9031f.onbld.com/latest.json, which contains `version`, `url`, and `publishedAt`.
 
 To force a refresh, re-run the install one-liner:
 
 ```
-curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
+curl -fsSL https://aiand-relay-6eb9031f.onbld.com/install.sh | sh
 ```
 
-You can check the installed version with `aiandrelay --version` and compare it against the published manifest at https://aiand-relay.vercel.app/latest.json.
+You can check the installed version with `aiandrelay --version` and compare it against the published manifest at https://aiand-relay-6eb9031f.onbld.com/latest.json.
 
 ## Architecture (how routing works)
 
@@ -252,9 +252,9 @@ aiandrelay daemon stop
 
 - [GitHub](https://github.com): source repository and issues
 - [README](https://github.com): human-readable project overview
-- [Website](https://aiand-relay.vercel.app): landing page
-- [Install script](https://aiand-relay.vercel.app/install.sh): one-command installer (`curl -fsSL https://aiand-relay.vercel.app/install.sh | sh`)
-- [Version manifest](https://aiand-relay.vercel.app/latest.json): current published version and release timestamp
-- [This LLM docs file](https://aiand-relay.vercel.app/llms.txt): the file you are reading now
+- [Website](https://aiand-relay-6eb9031f.onbld.com): landing page
+- [Install script](https://aiand-relay-6eb9031f.onbld.com/install.sh): one-command installer (`curl -fsSL https://aiand-relay-6eb9031f.onbld.com/install.sh | sh`)
+- [Version manifest](https://aiand-relay-6eb9031f.onbld.com/latest.json): current published version and release timestamp
+- [This LLM docs file](https://aiand-relay-6eb9031f.onbld.com/llms.txt): the file you are reading now
 - [ai& API keys](https://docs.aiand.com/): get a key to route traffic
 - [llms.txt specification](https://llmstxt.org): the convention this file follows

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # aiandrelay installer.
 #
-#   curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
+#   curl -fsSL https://aiand-relay-6eb9031f.onbld.com/install.sh | sh
 #
 # Installs the aiandrelay CLI as a Bun-target JS bundle at
 # ~/.aiandrelay/bin/aiandrelay.js, with a `aiandrelay` wrapper script on
@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-ORIGIN="${AIANDRELAY_ORIGIN:-https://aiand-relay.vercel.app}"
+ORIGIN="${AIANDRELAY_ORIGIN:-https://aiand-relay-6eb9031f.onbld.com}"
 INSTALL_DIR="${AIANDRELAY_HOME:-$HOME/.aiandrelay}"
 BIN_DIR="$INSTALL_DIR/bin"
 

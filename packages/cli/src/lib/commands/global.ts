@@ -39,7 +39,7 @@ Codex flags:
 Your last-used model is remembered per tool: change it with /model (or --model
 before the harness) and the next launch reuses it.
 
-Docs: https://aiand-relay.vercel.app/llms.txt
+Docs: https://aiand-relay-6eb9031f.onbld.com/llms.txt
   LLM-readable documentation - if you are an AI agent asked to install, configure,
   or use aiandrelay (including headless use), read that file first.
 `);

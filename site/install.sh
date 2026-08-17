@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # aiandrelay installer.
 #
-#   curl -fsSL https://aiand-relay.vercel.app/install.sh | sh
+#   curl -fsSL https://aiand-relay-6eb9031f.onbld.com/install.sh | sh
 #
 # Installs the aiandrelay CLI as a Bun-target JS bundle at
 # ~/.aiandrelay/bin/aiandrelay.js, with a `aiandrelay` wrapper script on
 # PATH that runs it with `bun`. Installs Bun for the user if `bun` isn't on
-# PATH. Also installs `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`,
-# `adeepseek`, `agrok`, and `aomp` convenience wrappers.
+# PATH. Also installs `aclaude`, `aopencode`, `acodex`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, and `aomp`
+# convenience wrappers.
 #
 # After install, prompts for a required ai& API key via /dev/tty (so
 # `curl | sh` still works). Verifies the key with GET /v1/models before
@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-ORIGIN="${AIANDRELAY_ORIGIN:-https://aiand-relay.vercel.app}"
+ORIGIN="${AIANDRELAY_ORIGIN:-https://aiand-relay-6eb9031f.onbld.com}"
 INSTALL_DIR="${AIANDRELAY_HOME:-$HOME/.aiandrelay}"
 BIN_DIR="$INSTALL_DIR/bin"
 
