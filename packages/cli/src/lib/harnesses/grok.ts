@@ -11,6 +11,7 @@ import {
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveAiandApiKey, resolveAiandBaseUrl } from "../aiand-core.js";
+import { meteredEndpoint } from "../metered-spawn.js";
 import { spawnBinary } from "../spawn-bin.js";
 
 export default defineHarness({
@@ -24,7 +25,13 @@ export default defineHarness({
     }
 
     const selectedModel = resolveCodexModel(ctx.main);
-    const baseUrl = resolveAiandBaseUrl();
+    const endpoint = await meteredEndpoint({
+      agent: HARNESS.GROK,
+      apiKey,
+      baseUrl: resolveAiandBaseUrl(),
+      model: selectedModel.definition,
+    });
+    const baseUrl = endpoint.baseUrl;
     // Isolated, empty auth file: Grok must use the ai& key we supply rather
     // than the user's own xAI login, and their real auth file stays untouched.
     const temporaryAuthDirectory = mkdtempSync(join(tmpdir(), "aiandrelay-grok-auth-"));
@@ -42,7 +49,7 @@ export default defineHarness({
       ];
       const env = buildGrokLaunchEnvironment({
         inheritedEnv: process.env,
-        apiKey,
+        apiKey: endpoint.apiKey,
         authPath,
         baseUrl,
         modelsListUrl: catalogServer.modelsListUrl,
@@ -72,6 +79,7 @@ export default defineHarness({
       process.exitCode = typeof result.status === "number" ? result.status : result.signal ? 1 : 0;
     } finally {
       try {
+        await endpoint.finish();
         await catalogServer?.close();
       } finally {
         rmSync(temporaryAuthDirectory, { recursive: true, force: true });

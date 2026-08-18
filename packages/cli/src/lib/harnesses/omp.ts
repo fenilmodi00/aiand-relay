@@ -5,6 +5,7 @@ import { getCodexSupportedModels, resolveCodexModel } from "../codex/defaults.js
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveAiandApiKey } from "../aiand-core.js";
+import { meteredEndpoint } from "../metered-spawn.js";
 import { aiandrelayHome } from "../paths.js";
 import { spawnBinary } from "../spawn-bin.js";
 
@@ -76,11 +77,11 @@ function ompArgsWithDefaultThinking(args: string[]): string[] {
 }
 
 /** omp-native `models.yml` declaring ai& as a custom openai-completions provider. */
-export function ompModelsYml(apiKey: string): string {
+export function ompModelsYml(apiKey: string, baseUrl: string = AIAND_BASE_URL): string {
   const lines: string[] = [
     "providers:",
     `  ${OMP_PROVIDER_ID}:`,
-    `    baseUrl: ${yamlQuote(AIAND_BASE_URL)}`,
+    `    baseUrl: ${yamlQuote(baseUrl)}`,
     "    api: openai-completions",
     `    apiKey: ${yamlQuote(apiKey)}`,
     "    compat:",
@@ -133,12 +134,18 @@ export default defineHarness({
 
     const agentDir = ompAgentDir();
     mkdirSync(agentDir, { recursive: true, mode: 0o700 });
-    writeFileSync(join(agentDir, "models.yml"), ompModelsYml(apiKey), {
+
+    const selectedModel = resolveCodexModel(ctx.main);
+    const endpoint = await meteredEndpoint({
+      agent: HARNESS.OMP,
+      apiKey,
+      baseUrl: AIAND_BASE_URL,
+      model: selectedModel.definition,
+    });
+    writeFileSync(join(agentDir, "models.yml"), ompModelsYml(endpoint.apiKey, endpoint.baseUrl), {
       encoding: "utf8",
       mode: 0o600,
     });
-
-    const selectedModel = resolveCodexModel(ctx.main);
     const supportedModels = ompSupportedModels();
     const args = [
       "--provider",
@@ -148,7 +155,7 @@ export default defineHarness({
       "--models",
       supportedModels,
       "--api-key",
-      apiKey,
+      endpoint.apiKey,
       "--yolo",
       "--no-extensions",
       "--no-skills",
@@ -168,7 +175,7 @@ export default defineHarness({
       env: {
         ...process.env,
         PI_CODING_AGENT_DIR: agentDir,
-        AIAND_API_KEY: apiKey,
+        AIAND_API_KEY: endpoint.apiKey,
         OMP_SKIP_SETUP: "1",
       },
       stdio: "inherit",
@@ -184,6 +191,7 @@ export default defineHarness({
       },
     );
 
+    await endpoint.finish();
     if (typeof result.status === "number") {
       process.exitCode = result.status;
     } else if (result.signal) {

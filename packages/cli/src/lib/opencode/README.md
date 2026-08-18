@@ -1,5 +1,11 @@
 # OpenCode implementation notes
 
+## User config vs session inject
+
+`aiandrelay configure` may add `provider.aiand` to the user's global OpenCode config (`~/.config/opencode/opencode.json` or `.jsonc`) and upsert `aiand` in `~/.local/share/opencode/auth.json`. That block is add-only: no `enabled_providers`, no `disabled_providers`, no default `model`, no `agent` overrides. Do not paste this module's session JSON (lockdown, whitelist, or `{env:AIAND_API_KEY}`) into the user file.
+
+`aopencode` / `aiandrelay opencode` is unchanged: it sets `OPENCODE_CONFIG_CONTENT` for that process only and does not read or write those user files.
+
 ## Images and vision
 
 Vision support depends on which model is active. The `build` agent's system

@@ -22,7 +22,9 @@ architecturally distinct families (recorded as `ProxiedHarness` and
   `models.json` from disk (Pi / Prime), a relay-owned `config.yaml` under
   `HERMES_HOME` (Hermes), a cordis YAML patch (DeepSeek), localhost catalog +
   env (Grok), or a relay-owned `models.yml` under `PI_CODING_AGENT_DIR`
-  (omp). No daemon, no proxy, no `CostTracker`, no keepalive.
+  (omp). No daemon, no proxy, no `CostTracker`, no keepalive unless
+  `AIANDRELAY_METER=1`, which registers a daemon session and routes
+  `/chat/completions` through the shared client so spend is metered.
 
 **Harness** - anything that adapts one agent CLI to ai& Relay. _Avoid:_
 integration, connector.

@@ -5,6 +5,14 @@ import { isHarnessImplemented } from "../harness-registry.js";
 import { detectInstalledHarnesses } from "../detect.js";
 import { readGlobalConfig, setGlobalApiKey, resolveStoredApiKey } from "../global-config.js";
 import { VERSION } from "../version.js";
+import { resolveBinPath } from "../spawn-bin.js";
+import { upsertOpencodeAiandAuth, opencodeAuthJsonPath } from "../opencode/auth.js";
+import {
+  injectOpencodeUserConfig,
+  isOpencodePresent,
+  locateOpencodeGlobalConfigFile,
+  opencodeGlobalConfigDir,
+} from "../opencode/user-config.js";
 
 export function printHelp() {
   console.log(`aiandrelay v${VERSION} - ai& for coding CLIs
@@ -45,7 +53,15 @@ Docs: https://aiand-relay-6eb9031f.onbld.com/llms.txt
 `);
 }
 
-export async function runConfigure(home = os.homedir()): Promise<boolean> {
+export type RunConfigureOptions = {
+  env?: NodeJS.ProcessEnv;
+  opencodeBinaryPresent?: boolean;
+};
+
+export async function runConfigure(
+  home = os.homedir(),
+  options: RunConfigureOptions = {},
+): Promise<boolean> {
   clack.intro("aiandrelay configure");
 
   const detected = detectInstalledHarnesses();
@@ -75,6 +91,72 @@ export async function runConfigure(home = os.homedir()): Promise<boolean> {
   await setGlobalApiKey(home, apiKey);
   clack.log.success("ai& API key saved to ~/.aiandrelay/config.json");
 
+  const env = options.env ?? process.env;
+  const binaryPresent = options.opencodeBinaryPresent ?? Boolean(resolveBinPath("opencode"));
+  const configDir = opencodeGlobalConfigDir({ home, env });
+
+  if (!isOpencodePresent({ home, env, binaryPresent })) {
+    clack.log.info(
+      `OpenCode was not found (no opencode on PATH and no ${configDir}). Skipping OpenCode provider inject. Re-run aiandrelay configure after installing OpenCode.`,
+    );
+  } else {
+    try {
+      const authResult = await upsertOpencodeAiandAuth({ home, env, apiKey });
+      if (authResult.status === "aborted") {
+        clack.log.error(
+          `OpenCode: left ${authResult.path} unchanged (auth.json is not valid JSON). Fix or move the file and re-run aiandrelay configure.`,
+        );
+        clack.log.info("OpenCode: skipped provider inject because credentials were not written.");
+      } else {
+        if (authResult.status === "created") {
+          clack.log.success(`OpenCode: saved ai& credentials to ${authResult.path}`);
+        } else {
+          clack.log.success(`OpenCode: updated ai& credentials in ${authResult.path}`);
+        }
+        try {
+          const configResult = await injectOpencodeUserConfig({ home, env });
+          if (configResult.status === "created") {
+            clack.log.success(`OpenCode: added provider.aiand to ${configResult.path}`);
+            clack.log.info(
+              "Plain opencode can use ai& models. aopencode is unchanged (session lockdown; writes nothing on launch).",
+            );
+          } else if (configResult.status === "merged") {
+            clack.log.success(
+              `OpenCode: updated provider.aiand in ${configResult.path} (curated models refreshed; extra models kept)`,
+            );
+          } else if (configResult.status === "aborted") {
+            if (configResult.reason === "invalid-json") {
+              clack.log.error(
+                `OpenCode: left ${configResult.path} unchanged (invalid JSON). Fix the file and re-run aiandrelay configure.`,
+              );
+            } else if (configResult.reason === "v2-schema") {
+              clack.log.error(
+                `OpenCode: left ${configResult.path} unchanged (OpenCode v2 providers schema). This release only writes v1 provider.aiand. Add ai& in that file manually; credentials were saved to ${authResult.path}.`,
+              );
+            } else if (configResult.reason === "provider-not-object") {
+              clack.log.error(
+                `OpenCode: left ${configResult.path} unchanged (top-level provider is not an object).`,
+              );
+            } else {
+              clack.log.error(
+                `OpenCode: left ${configResult.path} unchanged (provider.aiand exists but is not an object).`,
+              );
+            }
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          const located = locateOpencodeGlobalConfigFile({ home, env });
+          clack.log.error(`OpenCode: could not write ${located.filePath}: ${message}`);
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      clack.log.error(
+        `OpenCode: could not write ${opencodeAuthJsonPath({ home, env })}: ${message}`,
+      );
+    }
+  }
+
   const launchable = ALL_HARNESSES.filter(
     (h) => isHarnessImplemented(h) && detected[h as HarnessId].installed,
   );
@@ -82,7 +164,9 @@ export async function runConfigure(home = os.homedir()): Promise<boolean> {
     clack.log.info(
       `Ready to launch: ${launchable
         .map((h) => HARNESS_LABEL[h])
-        .join(", ")}. Run \`aiandrelay <harness>\` to start - nothing is written to disk.`,
+        .join(
+          ", ",
+        )}. Run \`aiandrelay <harness>\` to start. \`aopencode\` still injects session settings and writes nothing on launch.`,
     );
   }
 

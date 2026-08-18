@@ -29,6 +29,7 @@
   "devDependencies": {
     "@aiandrelay/cli": "workspace:*",
     "@aiandrelay/models": "workspace:*",
+    "@clack/prompts": "^0.8.2",
     "@types/node": "^26.0.0",
     "vitest": "^4.0.15"
   }

@@ -38,12 +38,16 @@ export async function readJsonIfExists<T extends JsonObject = JsonObject>(
   }
 }
 
-export async function writeJsonAtomic(filePath: string, value: unknown): Promise<void> {
+export async function writeTextAtomic(filePath: string, text: string): Promise<void> {
   await mkdir(path.dirname(filePath), { recursive: true });
-  const serialized = `${JSON.stringify(value, null, 2)}\n`;
   const tmpPath = `${filePath}.tmp-${process.pid}`;
-  await writeFile(tmpPath, serialized, { mode: 0o600 });
+  await writeFile(tmpPath, text, { mode: 0o600 });
   await rename(tmpPath, filePath);
+}
+
+export async function writeJsonAtomic(filePath: string, value: unknown): Promise<void> {
+  const serialized = `${JSON.stringify(value, null, 2)}\n`;
+  await writeTextAtomic(filePath, serialized);
 }
 
 /**

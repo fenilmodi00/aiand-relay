@@ -152,11 +152,17 @@ export function compactionResponse(summary: string, model: string): Record<strin
  * some clients (notably ChatGPT Desktop) send the bare path. Treat the
  * un-prefixed forms as aliases so a valid request is never answered with a 404.
  */
-const CODEX_V1_ALIAS_PATHS = new Set(["/models", "/responses", "/responses/compact"]);
+const CODEX_V1_ALIAS_PATHS = new Set([
+  "/models",
+  "/responses",
+  "/responses/compact",
+  "/memories/trace_summarize",
+]);
 
 export const CODEX_RESPONSES_PATH = "/v1/responses";
 export const CODEX_COMPACT_PATH = "/v1/responses/compact";
 export const CODEX_MODELS_PATH = "/v1/models";
+export const CODEX_MEMORIES_PATH = "/v1/memories/trace_summarize";
 
 export function normalizeCodexPath(path: string): string {
   return CODEX_V1_ALIAS_PATHS.has(path) ? `/v1${path}` : path;
@@ -171,4 +177,9 @@ export function isCodexResponsesPath(path: string): boolean {
 /** True for the dedicated compaction endpoint (as opposed to a trigger item). */
 export function isCodexCompactPath(path: string): boolean {
   return normalizeCodexPath(path) === CODEX_COMPACT_PATH;
+}
+
+/** Codex durable-memory trace summarization. */
+export function isCodexMemoriesPath(path: string): boolean {
+  return normalizeCodexPath(path) === CODEX_MEMORIES_PATH;
 }
