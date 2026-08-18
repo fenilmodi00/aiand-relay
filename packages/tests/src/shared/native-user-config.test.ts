@@ -133,6 +133,22 @@ describe("shared native-user-config helpers", () => {
 });
 
 describe("Pi-family shared helpers", () => {
+  test("shared pi-family payload builder uses the shared native model helper", async () => {
+    const sourcePath = path.join(
+      process.cwd(),
+      "..",
+      "cli",
+      "src",
+      "lib",
+      "shared",
+      "pi-family-user-config.ts",
+    );
+    const source = await readFile(sourcePath, "utf8");
+
+    expect(source).toContain('getNativeUserConfigModels');
+    expect(source).not.toContain('getCodexSupportedModels');
+  });
+
   test("pi/omp/prime config dirs and omp precedence are stable", async () => {
     const home = await tempHome();
     expect(piFamilyConfigDir("pi", home)).toBe(path.join(home, ".pi", "agent"));
