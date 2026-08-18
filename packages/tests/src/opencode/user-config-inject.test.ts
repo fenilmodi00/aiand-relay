@@ -1,9 +1,9 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { AIAND_BASE_URL } from "@aiandrelay/models";
-import { opencodeAuthJsonPath } from "../../../cli/src/lib/opencode/auth.js";
+import { opencodeAuthJsonPath, upsertOpencodeAiandAuth } from "../../../cli/src/lib/opencode/auth.js";
 import {
   OPENCODE_DEFAULT_MODEL,
   OPENCODE_PROVIDER_ID,
@@ -220,5 +220,112 @@ describe("isOpencodePresent / locateOpencodeGlobalConfigFile", () => {
       filePath: path.join(dir, "opencode.json"),
       existed: false,
     });
+  });
+});
+
+describe("upsertOpencodeAiandAuth", () => {
+  let home: string;
+  let env: NodeJS.ProcessEnv;
+
+  beforeEach(async () => {
+    home = await mkdtemp(path.join(os.tmpdir(), "aiandrelay-opencode-auth-"));
+    env = {
+      XDG_CONFIG_HOME: path.join(home, "xdg-config"),
+      XDG_DATA_HOME: path.join(home, "xdg-data"),
+    };
+  });
+
+  afterEach(async () => {
+    await rm(home, { recursive: true, force: true });
+  });
+
+  test("creates auth.json with aiand api credential and 0o600 on unix", async () => {
+    const result = await upsertOpencodeAiandAuth({
+      home,
+      env,
+      apiKey: "sk-aiand-new",
+    });
+    const filePath = opencodeAuthJsonPath({ home, env });
+    expect(result).toEqual({ status: "created", path: filePath });
+    const raw = await readFile(filePath, "utf8");
+    expect(JSON.parse(raw)).toEqual({
+      [OPENCODE_PROVIDER_ID]: { type: "api", key: "sk-aiand-new" },
+    });
+    expect(raw.endsWith("\n")).toBe(true);
+    if (process.platform !== "win32") {
+      const info = await stat(filePath);
+      expect(info.mode & 0o777).toBe(0o600);
+    }
+  });
+
+  test("keeps sibling credentials and adds aiand", async () => {
+    const filePath = opencodeAuthJsonPath({ home, env });
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(
+      filePath,
+      `${JSON.stringify({ anthropic: { type: "api", key: "sk-ant" } }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const result = await upsertOpencodeAiandAuth({
+      home,
+      env,
+      apiKey: "sk-aiand-new",
+    });
+    expect(result.status).toBe("updated");
+    expect(JSON.parse(await readFile(filePath, "utf8"))).toEqual({
+      anthropic: { type: "api", key: "sk-ant" },
+      [OPENCODE_PROVIDER_ID]: { type: "api", key: "sk-aiand-new" },
+    });
+  });
+
+  test("reconfigure updates the aiand key and leaves anthropic", async () => {
+    const filePath = opencodeAuthJsonPath({ home, env });
+    await upsertOpencodeAiandAuth({ home, env, apiKey: "sk-aiand-old" });
+    await mkdir(path.dirname(filePath), { recursive: true });
+    const first = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+    first.anthropic = { type: "api", key: "sk-ant" };
+    await writeFile(filePath, `${JSON.stringify(first, null, 2)}\n`, "utf8");
+
+    const result = await upsertOpencodeAiandAuth({
+      home,
+      env,
+      apiKey: "sk-aiand-rotated",
+    });
+    expect(result.status).toBe("updated");
+    expect(JSON.parse(await readFile(filePath, "utf8"))).toEqual({
+      anthropic: { type: "api", key: "sk-ant" },
+      [OPENCODE_PROVIDER_ID]: { type: "api", key: "sk-aiand-rotated" },
+    });
+  });
+
+  test("invalid JSON aborts and leaves bytes unchanged", async () => {
+    const filePath = opencodeAuthJsonPath({ home, env });
+    await mkdir(path.dirname(filePath), { recursive: true });
+    const original = "NOT JSON";
+    await writeFile(filePath, original, "utf8");
+
+    const result = await upsertOpencodeAiandAuth({
+      home,
+      env,
+      apiKey: "sk-aiand-new",
+    });
+    expect(result).toEqual({ status: "aborted", path: filePath, reason: "invalid-json" });
+    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+  });
+
+  test("non-object JSON aborts without wiping", async () => {
+    const filePath = opencodeAuthJsonPath({ home, env });
+    await mkdir(path.dirname(filePath), { recursive: true });
+    const original = "[1, 2]\n";
+    await writeFile(filePath, original, "utf8");
+
+    const result = await upsertOpencodeAiandAuth({
+      home,
+      env,
+      apiKey: "sk-aiand-new",
+    });
+    expect(result).toEqual({ status: "aborted", path: filePath, reason: "not-object" });
+    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
   });
 });
