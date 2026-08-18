@@ -20,7 +20,9 @@ async function tempHome(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 describe("Prime native injection adapter", () => {
@@ -119,7 +121,9 @@ describe("Prime native injection adapter", () => {
     };
     expect(rerun.providers.aiand.customTopLevel).toEqual({ keep: true });
     expect(rerun.providers.aiand.compat.userToggle).toBe("keep-me");
-    const rerunFirstModel = rerun.providers.aiand.models.find((model) => model.id === firstModel.id);
+    const rerunFirstModel = rerun.providers.aiand.models.find(
+      (model) => model.id === firstModel.id,
+    );
     expect(rerunFirstModel?.userLabel).toBe("keep-model-field");
     expect((rerunFirstModel?.cost as Record<string, unknown>).negotiated).toBe(7);
     expect(rerun.providers.aiand.baseUrl).toBe(AIAND_BASE_URL);

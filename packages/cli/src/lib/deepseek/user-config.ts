@@ -178,10 +178,16 @@ type YamlScalarLike = {
 
 function validateDeepseekYamlAiand(
   aiand: MutableYamlMap,
-): Exclude<
-  DeepseekConfigErrorReason,
-  "invalid-yaml" | "not-object" | "plugin-not-object" | "providers-not-object" | "aiand-not-object"
-> | undefined {
+):
+  | Exclude<
+      DeepseekConfigErrorReason,
+      | "invalid-yaml"
+      | "not-object"
+      | "plugin-not-object"
+      | "providers-not-object"
+      | "aiand-not-object"
+    >
+  | undefined {
   const compatNode = aiand.get("compat", true);
   if (compatNode !== undefined && !isMap(compatNode)) {
     return "aiand-compat-not-object";
@@ -198,9 +204,7 @@ function validateDeepseekYamlAiand(
 function mergeDeepseekYamlText(
   text: string,
   nextProvider: DeepseekProviderConfig,
-):
-  | { text: string; hadExistingAiand: boolean }
-  | { error: DeepseekConfigErrorReason } {
+): { text: string; hadExistingAiand: boolean } | { error: DeepseekConfigErrorReason } {
   const document = parseDocument(text);
   if (document.errors.length > 0) {
     return { error: "invalid-yaml" };
@@ -325,7 +329,11 @@ function yamlStringValue(value: unknown): string | undefined {
   if (typeof value === "string") {
     return value;
   }
-  if (isPlainObject(value) && "value" in value && typeof (value as YamlScalarLike).value === "string") {
+  if (
+    isPlainObject(value) &&
+    "value" in value &&
+    typeof (value as YamlScalarLike).value === "string"
+  ) {
     return (value as YamlScalarLike).value as string;
   }
   return undefined;

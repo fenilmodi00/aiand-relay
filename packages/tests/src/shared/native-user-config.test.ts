@@ -40,7 +40,9 @@ async function tempHome(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 describe("shared native-user-config helpers", () => {
@@ -57,7 +59,10 @@ describe("shared native-user-config helpers", () => {
     const injector: NativeUserConfigInjector<"invalid-json", "not-object"> = {
       harness: "demo",
       isPresent: ({ home, binaryPresent }) => binaryPresent || home.length > 0,
-      injectUserConfig: async ({ home }) => ({ status: "created", path: path.join(home, "config.json") }),
+      injectUserConfig: async ({ home }) => ({
+        status: "created",
+        path: path.join(home, "config.json"),
+      }),
       ...authInjector,
     };
 
@@ -145,8 +150,8 @@ describe("Pi-family shared helpers", () => {
     );
     const source = await readFile(sourcePath, "utf8");
 
-    expect(source).toContain('getNativeUserConfigModels');
-    expect(source).not.toContain('getCodexSupportedModels');
+    expect(source).toContain("getNativeUserConfigModels");
+    expect(source).not.toContain("getCodexSupportedModels");
   });
 
   test("pi/omp/prime config dirs and omp precedence are stable", async () => {
@@ -410,24 +415,22 @@ describe("Pi-family shared helpers", () => {
       ].join("\n"),
       reason: "aiand-model-thinking-level-map-not-object",
     },
-  ])("injectPiFamilyConfig aborts when nested managed aiand content is malformed: $name", async ({
-    harness,
-    fileName,
-    original,
-    reason,
-  }) => {
-    const home = await tempHome();
-    const filePath = path.join(piFamilyConfigDir(harness, home), fileName);
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, original, "utf8");
+  ])(
+    "injectPiFamilyConfig aborts when nested managed aiand content is malformed: $name",
+    async ({ harness, fileName, original, reason }) => {
+      const home = await tempHome();
+      const filePath = path.join(piFamilyConfigDir(harness, home), fileName);
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, original, "utf8");
 
-    await expect(injectPiFamilyConfig(harness, home)).resolves.toEqual({
-      status: "aborted",
-      path: filePath,
-      reason,
-    });
-    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
-  });
+      await expect(injectPiFamilyConfig(harness, home)).resolves.toEqual({
+        status: "aborted",
+        path: filePath,
+        reason,
+      });
+      await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+    },
+  );
 
   test("injectPiFamilyConfig preserves yaml comments when merging aiand beside other providers", async () => {
     const home = await tempHome();

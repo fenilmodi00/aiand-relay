@@ -52,7 +52,9 @@ describe("deepseek cordis patch", () => {
     const patch = buildDeepseekPatch(selected, "https://api.aiand.com/v1", nativeKey);
     const source = buildDeepseekPatchSource(selected, "https://api.aiand.com/v1", nativeKey);
 
-    expect(patch.some((entry) => entry.id === "llm-deepseek" && entry.disabled === true)).toBe(false);
+    expect(patch.some((entry) => entry.id === "llm-deepseek" && entry.disabled === true)).toBe(
+      false,
+    );
     expect(source).toContain("apiKeyEnv: AIAND_API_KEY");
     expect(source).not.toContain(nativeKey);
     expect(source).not.toContain("test-key");

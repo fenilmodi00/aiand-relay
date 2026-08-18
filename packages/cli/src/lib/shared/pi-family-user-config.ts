@@ -116,7 +116,10 @@ export function locatePiFamilyConfigFile(
   return { dir, filePath, existed: existsSync(filePath), format: "json" };
 }
 
-export function piFamilyAuthJsonPath(harness: Exclude<PiFamilyHarness, "omp">, home: string): string {
+export function piFamilyAuthJsonPath(
+  harness: Exclude<PiFamilyHarness, "omp">,
+  home: string,
+): string {
   return path.join(piFamilyConfigDir(harness, home), "auth.json");
 }
 
@@ -348,11 +351,17 @@ function mergeJsonNestedRecord(
 
 function validatePiFamilyJsonAiand(
   existingAiand: Record<string, unknown>,
-): Exclude<
-  PiFamilyConfigErrorReason,
-  "invalid-json" | "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object"
-> | undefined {
-  if ("compat" in existingAiand && existingAiand.compat !== undefined && !isPlainObject(existingAiand.compat)) {
+):
+  | Exclude<
+      PiFamilyConfigErrorReason,
+      "invalid-json" | "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object"
+    >
+  | undefined {
+  if (
+    "compat" in existingAiand &&
+    existingAiand.compat !== undefined &&
+    !isPlainObject(existingAiand.compat)
+  ) {
     return "aiand-compat-not-object";
   }
   if ("models" in existingAiand && existingAiand.models !== undefined) {
@@ -458,10 +467,12 @@ type YamlScalarLike = {
 function validatePiFamilyYamlAiand(
   aiand: MutableYamlMap,
   document: ReturnType<typeof parseDocument>,
-): Exclude<
-  PiFamilyConfigErrorReason,
-  "invalid-json" | "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object"
-> | undefined {
+):
+  | Exclude<
+      PiFamilyConfigErrorReason,
+      "invalid-json" | "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object"
+    >
+  | undefined {
   const compatNode = aiand.get("compat", true);
   if (compatNode !== undefined && !isYamlMapNode(compatNode, document)) {
     return "aiand-compat-not-object";
@@ -515,10 +526,7 @@ function mergeOmpAiandProvider(
   aiand.set("apiKey", nextProvider.apiKey);
 }
 
-function mergeOmpCompat(
-  aiand: MutableYamlMap,
-  compat: PiFamilyProviderConfig["compat"],
-): void {
+function mergeOmpCompat(aiand: MutableYamlMap, compat: PiFamilyProviderConfig["compat"]): void {
   const existingCompat = aiand.get("compat", true);
   if (existingCompat !== undefined && isMap(existingCompat)) {
     const compatMap = existingCompat as MutableYamlMap;
@@ -597,7 +605,11 @@ function yamlStringValue(value: unknown): string | undefined {
   if (typeof value === "string") {
     return value;
   }
-  if (isPlainObject(value) && "value" in value && typeof (value as YamlScalarLike).value === "string") {
+  if (
+    isPlainObject(value) &&
+    "value" in value &&
+    typeof (value as YamlScalarLike).value === "string"
+  ) {
     return (value as YamlScalarLike).value as string;
   }
   return undefined;

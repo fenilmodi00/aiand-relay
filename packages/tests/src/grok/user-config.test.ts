@@ -20,7 +20,9 @@ async function tempHome(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 describe("Grok native user config", () => {

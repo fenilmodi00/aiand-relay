@@ -319,15 +319,21 @@ describe("aiandrelay configure", () => {
     });
 
     expect(ok).toBe(true);
-    expect(JSON.parse(await readFile(piAuthJsonPath(home), "utf8")).aiand.key).toBe("sk-aiand-secret");
-    expect(await readFile(path.join(home, ".pi", "agent", "models.json"), "utf8")).toContain('"aiand"');
-    await expect(readFile(locateOmpModelsFile(home), "utf8")).resolves.toContain("apiKey: AIAND_API_KEY");
+    expect(JSON.parse(await readFile(piAuthJsonPath(home), "utf8")).aiand.key).toBe(
+      "sk-aiand-secret",
+    );
+    expect(await readFile(path.join(home, ".pi", "agent", "models.json"), "utf8")).toContain(
+      '"aiand"',
+    );
+    await expect(readFile(locateOmpModelsFile(home), "utf8")).resolves.toContain(
+      "apiKey: AIAND_API_KEY",
+    );
     expect(JSON.parse(await readFile(primeAuthJsonPath(home), "utf8")).aiand.key).toBe(
       "sk-aiand-secret",
     );
-    await expect(readFile(path.join(home, ".prime", "agent", "models.json"), "utf8")).resolves.toContain(
-      '"aiand"',
-    );
+    await expect(
+      readFile(path.join(home, ".prime", "agent", "models.json"), "utf8"),
+    ).resolves.toContain('"aiand"');
   });
 
   test("Pi auth not-object abort is explicit and skips config inject", async () => {
@@ -440,7 +446,9 @@ describe("aiandrelay configure", () => {
     await expect(readFile(hermesEnvPath({ home, env }), "utf8")).resolves.toContain(
       "AIAND_API_KEY=sk-aiand-secret",
     );
-    await expect(readFile(grokConfigPath({ home, env }), "utf8")).resolves.toContain("[model.aiand]");
+    await expect(readFile(grokConfigPath({ home, env }), "utf8")).resolves.toContain(
+      "[model.aiand]",
+    );
     await expect(readFile(deepseekSettingsPath({ home, env }), "utf8")).resolves.toContain(
       "llm-pi-ai:",
     );
@@ -506,7 +514,9 @@ describe("aiandrelay configure", () => {
     expect(ok).toBe(true);
     const messages = error.mock.calls.map((call) => String(call[0])).join("\n");
     expect(messages).toContain(`Hermes Agent: could not write ${failingPath}:`);
-    expect(messages).not.toContain(`Hermes Agent: could not write ${hermesConfigPath({ home, env })}:`);
+    expect(messages).not.toContain(
+      `Hermes Agent: could not write ${hermesConfigPath({ home, env })}:`,
+    );
   });
 
   test("directory fallback detects multiple harnesses and injects native config without PATH hits", async () => {
@@ -542,7 +552,9 @@ describe("aiandrelay configure", () => {
 
     expect(ok).toBe(true);
     expect(existsSync(opencodeAuthJsonPath({ home, env }))).toBe(true);
-    expect(existsSync(path.join(opencodeGlobalConfigDir({ home, env }), "opencode.json"))).toBe(true);
+    expect(existsSync(path.join(opencodeGlobalConfigDir({ home, env }), "opencode.json"))).toBe(
+      true,
+    );
     expect(existsSync(piAuthJsonPath(home))).toBe(true);
     expect(existsSync(path.join(home, ".pi", "agent", "models.json"))).toBe(true);
     expect(existsSync(locateOmpModelsFile(home))).toBe(true);
@@ -561,7 +573,9 @@ describe("aiandrelay configure", () => {
     expect(text).toContain("Prime Agent: not found (configure can inject native settings)");
     expect(text).toContain("Hermes Agent: not found (configure can inject native settings)");
     expect(text).toContain("Grok Build: not found (configure can inject native settings)");
-    expect(text).toContain("DeepSeek Harness (alpha): not found (configure can inject native settings)");
+    expect(text).toContain(
+      "DeepSeek Harness (alpha): not found (configure can inject native settings)",
+    );
     expect(text).toContain(
       "Plain opencode can use ai& models. aopencode is unchanged (session lockdown; writes nothing on launch).",
     );
@@ -573,7 +587,9 @@ describe("aiandrelay configure", () => {
       `Claude Code: left ${claudeSettingsPath(home)} unchanged (native custom providers are not supported safely). Continue using \`aiandrelay claude\` for ai& access.`,
     );
     expect(text).toContain("Ready to launch: Codex.");
-    expect(text).toContain("`aopencode` still injects session settings and writes nothing on launch");
+    expect(text).toContain(
+      "`aopencode` still injects session settings and writes nothing on launch",
+    );
   });
 
   test("Claude path hit logs explicit defer and leaves settings untouched", async () => {

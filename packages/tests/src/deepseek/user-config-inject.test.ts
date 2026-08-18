@@ -17,7 +17,9 @@ async function tempHome(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(temporaryHomes.splice(0).map((home) => rm(home, { recursive: true, force: true })));
+  await Promise.all(
+    temporaryHomes.splice(0).map((home) => rm(home, { recursive: true, force: true })),
+  );
 });
 
 describe("DeepSeek native user config", () => {
@@ -188,18 +190,21 @@ describe("DeepSeek native user config", () => {
       original: ["llm-pi-ai:", "  providers:", "    aiand:", "      models: nope", ""].join("\n"),
       reason: "aiand-models-not-array",
     },
-  ])("aborts when nested managed aiand content is malformed: $name", async ({ original, reason }) => {
-    const home = await tempHome();
-    const env = { DSH_HOME: path.join(home, ".dsh") };
-    const filePath = deepseekSettingsPath({ home, env });
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, original, "utf8");
+  ])(
+    "aborts when nested managed aiand content is malformed: $name",
+    async ({ original, reason }) => {
+      const home = await tempHome();
+      const env = { DSH_HOME: path.join(home, ".dsh") };
+      const filePath = deepseekSettingsPath({ home, env });
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, original, "utf8");
 
-    await expect(injectDeepseekUserConfig({ home, env })).resolves.toEqual({
-      status: "aborted",
-      path: filePath,
-      reason,
-    });
-    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
-  });
+      await expect(injectDeepseekUserConfig({ home, env })).resolves.toEqual({
+        status: "aborted",
+        path: filePath,
+        reason,
+      });
+      await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+    },
+  );
 });

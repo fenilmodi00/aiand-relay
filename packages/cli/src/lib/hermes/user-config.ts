@@ -109,11 +109,7 @@ export async function injectHermesUserConfig(opts: {
   return { status: createdOrMergedStatus(existingAiandNode !== undefined), path: filePath };
 }
 
-export function upsertHermesEnvKey(opts: {
-  home: string;
-  env: NodeJS.ProcessEnv;
-  apiKey: string;
-}) {
+export function upsertHermesEnvKey(opts: { home: string; env: NodeJS.ProcessEnv; apiKey: string }) {
   return upsertDotenvVar(hermesEnvPath(opts), AIAND_API_KEY_ENV_NAME, opts.apiKey);
 }
 

@@ -20,7 +20,9 @@ async function tempHome(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 describe("Pi native injection adapter", () => {
@@ -82,7 +84,9 @@ describe("Pi native injection adapter", () => {
       "utf8",
     );
 
-    await expect(piNativeUserConfig.persistAuth({ home, env: {}, apiKey: "sk-pi-one" })).resolves.toEqual({
+    await expect(
+      piNativeUserConfig.persistAuth({ home, env: {}, apiKey: "sk-pi-one" }),
+    ).resolves.toEqual({
       status: "updated",
       path: authPath,
     });

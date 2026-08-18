@@ -7,8 +7,16 @@ import { detectInstalledHarnesses } from "../detect.js";
 import { readGlobalConfig, setGlobalApiKey, resolveStoredApiKey } from "../global-config.js";
 import { VERSION } from "../version.js";
 import { resolveBinPath } from "../spawn-bin.js";
-import { claudeSettingsPath, decideClaudeNativeConfig, isClaudePresent } from "../claude/user-config.js";
-import { deepseekSettingsPath, injectDeepseekUserConfig, isDeepseekPresent } from "../deepseek/user-config.js";
+import {
+  claudeSettingsPath,
+  decideClaudeNativeConfig,
+  isClaudePresent,
+} from "../claude/user-config.js";
+import {
+  deepseekSettingsPath,
+  injectDeepseekUserConfig,
+  isDeepseekPresent,
+} from "../deepseek/user-config.js";
 import {
   hermesConfigPath,
   hermesEnvPath,
@@ -25,7 +33,12 @@ import {
 } from "../opencode/user-config.js";
 import { grokConfigPath, injectGrokUserConfig, isGrokPresent } from "../grok/user-config.js";
 import { injectOmpUserConfig, isOmpPresent, locateOmpModelsFile } from "../omp/user-config.js";
-import { injectPiUserConfig, isPiPresent, piAuthJsonPath, upsertPiAuth } from "../pi/user-config.js";
+import {
+  injectPiUserConfig,
+  isPiPresent,
+  piAuthJsonPath,
+  upsertPiAuth,
+} from "../pi/user-config.js";
 import {
   injectPrimeUserConfig,
   isPrimePresent,
@@ -240,7 +253,9 @@ export async function runConfigure(
         clack.log.error(
           `Prime Agent: left ${authResult.path} unchanged (${formatJsonAbortReason(authResult.reason)}).`,
         );
-        clack.log.info("Prime Agent: skipped provider inject because credentials were not written.");
+        clack.log.info(
+          "Prime Agent: skipped provider inject because credentials were not written.",
+        );
       } else {
         clack.log.success(
           `Prime Agent: ${authResult.status === "created" ? "saved" : "updated"} ai& credentials in ${authResult.path}`,
@@ -409,7 +424,9 @@ function logPiFamilyConfigResult(
   },
 ): void {
   if (result.status === "aborted") {
-    clack.log.error(`${label}: left ${result.path} unchanged (${formatPiFamilyConfigAbortReason(result.reason)}).`);
+    clack.log.error(
+      `${label}: left ${result.path} unchanged (${formatPiFamilyConfigAbortReason(result.reason)}).`,
+    );
     return;
   }
   clack.log.success(
@@ -422,11 +439,18 @@ function logYamlConfigResult(
   result: {
     status: "created" | "merged" | "updated" | "aborted";
     path: string;
-    reason?: "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object" | "models-not-sequence";
+    reason?:
+      | "invalid-yaml"
+      | "not-object"
+      | "providers-not-object"
+      | "aiand-not-object"
+      | "models-not-sequence";
   },
 ): void {
   if (result.status === "aborted") {
-    clack.log.error(`${label}: left ${result.path} unchanged (${formatYamlConfigAbortReason(result.reason)}).`);
+    clack.log.error(
+      `${label}: left ${result.path} unchanged (${formatYamlConfigAbortReason(result.reason)}).`,
+    );
     return;
   }
   clack.log.success(
@@ -550,7 +574,9 @@ function formatDeepseekAbortReason(
   }
 }
 
-function formatClaudeDecision(reason: "unsupported-custom-provider" | "destructive-proxy-redirection"): string {
+function formatClaudeDecision(
+  reason: "unsupported-custom-provider" | "destructive-proxy-redirection",
+): string {
   if (reason === "destructive-proxy-redirection") {
     return "native settings would redirect all Claude traffic through a proxy";
   }

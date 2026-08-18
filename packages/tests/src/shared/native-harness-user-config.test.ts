@@ -18,7 +18,9 @@ async function tempHome(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    temporaryDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 describe("OMP native user config", () => {
@@ -132,7 +134,9 @@ describe("OMP native user config", () => {
     const second = await injectOmpUserConfig(home);
     const secondText = await readFile(filePath, "utf8");
     const firstModelIds = [...firstText.matchAll(/^\s*-\s+id:\s+(.+)$/gm)].map((match) => match[1]);
-    const secondModelIds = [...secondText.matchAll(/^\s*-\s+id:\s+(.+)$/gm)].map((match) => match[1]);
+    const secondModelIds = [...secondText.matchAll(/^\s*-\s+id:\s+(.+)$/gm)].map(
+      (match) => match[1],
+    );
 
     expect(first).toEqual({ status: "created", path: filePath });
     expect(second).toEqual({ status: "merged", path: filePath });
