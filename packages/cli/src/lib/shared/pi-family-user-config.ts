@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
-import { isMap, isSeq, parseDocument, stringify as stringifyYaml } from "yaml";
+import { isAlias, isMap, isSeq, parseDocument, stringify as stringifyYaml } from "yaml";
 import {
   AIAND_API_KEY_ENV_NAME,
   AIAND_BASE_URL,
@@ -138,7 +138,7 @@ export function buildPiFamilyProviderConfig(harness: PiFamilyHarness): PiFamilyP
     ),
     contextWindow: definition.limit.context,
     maxTokens: definition.limit.output,
-    ...(definition.reasoning ? { thinkingLevelMap: PI_FAMILY_THINKING_LEVEL_MAP } : {}),
+    ...(definition.reasoning ? { thinkingLevelMap: { ...PI_FAMILY_THINKING_LEVEL_MAP } } : {}),
     cost: {
       input: definition.cost.input,
       output: definition.cost.output,
@@ -424,7 +424,7 @@ function mergePiFamilyYamlText(
       hadExistingAiand: false,
     };
   }
-  const nestedError = validatePiFamilyYamlAiand(existingAiandNode as MutableYamlMap);
+  const nestedError = validatePiFamilyYamlAiand(existingAiandNode as MutableYamlMap, document);
   if (nestedError) {
     return { error: nestedError };
   }
@@ -457,12 +457,13 @@ type YamlScalarLike = {
 
 function validatePiFamilyYamlAiand(
   aiand: MutableYamlMap,
+  document: ReturnType<typeof parseDocument>,
 ): Exclude<
   PiFamilyConfigErrorReason,
   "invalid-json" | "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object"
 > | undefined {
   const compatNode = aiand.get("compat", true);
-  if (compatNode !== undefined && !isMap(compatNode)) {
+  if (compatNode !== undefined && !isYamlMapNode(compatNode, document)) {
     return "aiand-compat-not-object";
   }
 
@@ -477,17 +478,27 @@ function validatePiFamilyYamlAiand(
       }
       const model = item as MutableYamlMap;
       const costNode = model.get("cost", true);
-      if (costNode !== undefined && !isMap(costNode)) {
+      if (costNode !== undefined && !isYamlMapNode(costNode, document)) {
         return "aiand-model-cost-not-object";
       }
       const thinkingLevelMapNode = model.get("thinkingLevelMap", true);
-      if (thinkingLevelMapNode !== undefined && !isMap(thinkingLevelMapNode)) {
+      if (thinkingLevelMapNode !== undefined && !isYamlMapNode(thinkingLevelMapNode, document)) {
         return "aiand-model-thinking-level-map-not-object";
       }
     }
   }
 
   return undefined;
+}
+
+function isYamlMapNode(node: unknown, document: ReturnType<typeof parseDocument>): boolean {
+  if (isMap(node)) {
+    return true;
+  }
+  if (isAlias(node)) {
+    return isMap(node.resolve(document));
+  }
+  return false;
 }
 
 function mergeOmpAiandProvider(
