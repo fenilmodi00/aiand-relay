@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
-import { isMap, parseDocument, stringify as stringifyYaml } from "yaml";
+import { isMap, isSeq, parseDocument, stringify as stringifyYaml } from "yaml";
 import {
   AIAND_API_KEY_ENV_NAME,
   AIAND_BASE_URL,
@@ -204,7 +204,7 @@ export async function injectPiFamilyConfig(
   const merged =
     located.format === "json"
       ? mergePiFamilyJsonText(existing, nextProvider)
-      : mergePiFamilyYamlText(existing, nextProvider);
+      : mergePiFamilyYamlText(existing, nextProvider, harness);
   if ("error" in merged) {
     return { status: "aborted", path: located.filePath, reason: merged.error };
   }
@@ -249,6 +249,7 @@ function mergePiFamilyJsonText(
 function mergePiFamilyYamlText(
   text: string,
   nextProvider: PiFamilyProviderConfig,
+  harness: PiFamilyHarness,
 ): { text: string; hadExistingAiand: boolean } | { error: PiFamilyConfigErrorReason } {
   const document = parseDocument(text);
   if (document.errors.length > 0) {
@@ -284,11 +285,140 @@ function mergePiFamilyYamlText(
     return { error: "aiand-not-object" };
   }
 
-  providersNode.set(PI_FAMILY_PROVIDER_ID, nextProvider);
+  if (existingAiandNode === undefined) {
+    providersNode.set(PI_FAMILY_PROVIDER_ID, nextProvider);
+    return {
+      text: document.toString(),
+      hadExistingAiand: false,
+    };
+  }
+
+  if (harness === "omp") {
+    mergeOmpAiandProvider(existingAiandNode, nextProvider, document);
+  } else {
+    providersNode.set(PI_FAMILY_PROVIDER_ID, nextProvider);
+  }
   return {
     text: document.toString(),
     hadExistingAiand: existingAiandNode !== undefined,
   };
+}
+
+type MutableYamlMap = {
+  get(key: string, keepScalar?: boolean): unknown;
+  set(key: string, value: unknown): void;
+  items?: unknown[];
+};
+
+type MutableYamlSeq = {
+  items: unknown[];
+  add(value: unknown): void;
+};
+
+type YamlScalarLike = {
+  value: unknown;
+};
+
+function mergeOmpAiandProvider(
+  existingAiandNode: unknown,
+  nextProvider: PiFamilyProviderConfig,
+  document: ReturnType<typeof parseDocument>,
+): void {
+  const aiand = existingAiandNode as MutableYamlMap;
+  aiand.set("baseUrl", nextProvider.baseUrl);
+  aiand.set("api", nextProvider.api);
+  aiand.set("authHeader", nextProvider.authHeader);
+  mergeOmpCompat(aiand, nextProvider.compat);
+  mergeOmpModels(aiand, nextProvider.models, document);
+  aiand.set("apiKey", nextProvider.apiKey);
+}
+
+function mergeOmpCompat(
+  aiand: MutableYamlMap,
+  compat: PiFamilyProviderConfig["compat"],
+): void {
+  const existingCompat = aiand.get("compat", true);
+  if (existingCompat !== undefined && isMap(existingCompat)) {
+    const compatMap = existingCompat as MutableYamlMap;
+    compatMap.set("supportsDeveloperRole", compat.supportsDeveloperRole);
+    compatMap.set("supportsReasoningEffort", compat.supportsReasoningEffort);
+    return;
+  }
+
+  aiand.set("compat", compat);
+}
+
+function mergeOmpModels(
+  aiand: MutableYamlMap,
+  nextModels: PiFamilyProviderModel[],
+  document: ReturnType<typeof parseDocument>,
+): void {
+  const existingModels = aiand.get("models", true);
+  if (existingModels !== undefined && isSeq(existingModels)) {
+    const modelSeq = existingModels as MutableYamlSeq;
+    const byId = new Map<string, MutableYamlMap>();
+    for (const item of modelSeq.items) {
+      if (!isMap(item)) {
+        continue;
+      }
+      const id = yamlStringValue(item.get("id", true));
+      if (id !== undefined) {
+        byId.set(id, item as MutableYamlMap);
+      }
+    }
+
+    for (const nextModel of nextModels) {
+      const existingModel = byId.get(nextModel.id);
+      if (existingModel) {
+        mergeOmpModel(existingModel, nextModel);
+      } else {
+        modelSeq.add(document.createNode(nextModel));
+      }
+    }
+    return;
+  }
+
+  aiand.set("models", nextModels);
+}
+
+function mergeOmpModel(existingModel: MutableYamlMap, nextModel: PiFamilyProviderModel): void {
+  existingModel.set("id", nextModel.id);
+  existingModel.set("name", nextModel.name);
+  existingModel.set("reasoning", nextModel.reasoning);
+  existingModel.set("input", nextModel.input);
+  existingModel.set("contextWindow", nextModel.contextWindow);
+  existingModel.set("maxTokens", nextModel.maxTokens);
+  mergeOmpNestedMap(existingModel, "cost", nextModel.cost);
+  if (nextModel.thinkingLevelMap) {
+    mergeOmpNestedMap(existingModel, "thinkingLevelMap", nextModel.thinkingLevelMap);
+  }
+}
+
+function mergeOmpNestedMap(
+  parent: MutableYamlMap,
+  key: string,
+  nextValue: Record<string, string | number>,
+): void {
+  const existingNode = parent.get(key, true);
+  if (existingNode !== undefined && isMap(existingNode)) {
+    const existingMap = existingNode as MutableYamlMap;
+    for (const [nestedKey, nestedValue] of Object.entries(nextValue)) {
+      existingMap.set(nestedKey, nestedValue);
+    }
+    return;
+  }
+
+  parent.set(key, nextValue);
+}
+
+function yamlStringValue(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (isPlainObject(value) && "value" in value && typeof (value as YamlScalarLike).value === "string") {
+    return (value as YamlScalarLike).value as string;
+  }
+  return undefined;
 }
 
 async function writePiFamilyDocument(
