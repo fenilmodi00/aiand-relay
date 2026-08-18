@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
+import { isMap, parseDocument, stringify as stringifyYaml } from "yaml";
 import {
   AIAND_API_KEY_ENV_NAME,
   AIAND_BASE_URL,
@@ -17,7 +18,12 @@ import {
 
 export type PiFamilyHarness = "pi" | "omp" | "prime";
 
-export type PiFamilyConfigErrorReason = "invalid-json" | "invalid-yaml" | "not-object";
+export type PiFamilyConfigErrorReason =
+  | "invalid-json"
+  | "invalid-yaml"
+  | "not-object"
+  | "providers-not-object"
+  | "aiand-not-object";
 export type PiFamilyConfigResult = NativeInjectResult<PiFamilyConfigErrorReason>;
 export type PiFamilyAuthResult = NativeInjectResult<"invalid-json" | "not-object">;
 
@@ -195,35 +201,94 @@ export async function injectPiFamilyConfig(
     return { status: "created", path: located.filePath };
   }
 
-  const parsed = parsePiFamilyText(existing, located.format);
-  if ("error" in parsed) {
-    return { status: "aborted", path: located.filePath, reason: parsed.error };
+  const merged =
+    located.format === "json"
+      ? mergePiFamilyJsonText(existing, nextProvider)
+      : mergePiFamilyYamlText(existing, nextProvider);
+  if ("error" in merged) {
+    return { status: "aborted", path: located.filePath, reason: merged.error };
   }
-
-  const providers = isPlainObject(parsed.value.providers) ? { ...parsed.value.providers } : {};
-  const hadExistingAiand = PI_FAMILY_PROVIDER_ID in providers;
-  providers[PI_FAMILY_PROVIDER_ID] = nextProvider;
-  const nextRoot = { ...parsed.value, providers };
-  await writePiFamilyDocument(located.filePath, located.format, nextRoot);
+  await writeTextAtomic(located.filePath, merged.text);
   return {
-    status: hadExistingAiand ? "merged" : "created",
+    status: merged.hadExistingAiand ? "merged" : "created",
     path: located.filePath,
   };
 }
 
-function parsePiFamilyText(
+function mergePiFamilyJsonText(
   text: string,
-  format: PiFamilyFormat,
-): { value: Record<string, unknown> } | { error: PiFamilyConfigErrorReason } {
-  try {
-    const parsed = format === "json" ? JSON.parse(text) : parseYaml(text);
-    if (!isPlainObject(parsed)) {
-      return { error: "not-object" };
-    }
-    return { value: parsed };
-  } catch {
-    return { error: format === "json" ? "invalid-json" : "invalid-yaml" };
+  nextProvider: PiFamilyProviderConfig,
+): { text: string; hadExistingAiand: boolean } | { error: PiFamilyConfigErrorReason } {
+  const errors: ParseError[] = [];
+  const parsed: unknown = parse(text, errors);
+  if (errors.length > 0) {
+    return { error: "invalid-json" };
   }
+  if (!isPlainObject(parsed)) {
+    return { error: "not-object" };
+  }
+  if ("providers" in parsed && !isPlainObject(parsed.providers)) {
+    return { error: "providers-not-object" };
+  }
+
+  const providers = isPlainObject(parsed.providers) ? parsed.providers : undefined;
+  const existingAiand = providers?.[PI_FAMILY_PROVIDER_ID];
+  if (existingAiand !== undefined && !isPlainObject(existingAiand)) {
+    return { error: "aiand-not-object" };
+  }
+
+  const edits = modify(text, ["providers", PI_FAMILY_PROVIDER_ID], nextProvider, {
+    formattingOptions: { tabSize: 2, insertSpaces: true },
+  });
+  return {
+    text: applyEdits(text, edits),
+    hadExistingAiand: existingAiand !== undefined,
+  };
+}
+
+function mergePiFamilyYamlText(
+  text: string,
+  nextProvider: PiFamilyProviderConfig,
+): { text: string; hadExistingAiand: boolean } | { error: PiFamilyConfigErrorReason } {
+  const document = parseDocument(text);
+  if (document.errors.length > 0) {
+    return { error: "invalid-yaml" };
+  }
+
+  if (document.contents === null) {
+    document.contents = document.createNode({
+      providers: { [PI_FAMILY_PROVIDER_ID]: nextProvider },
+    }) as unknown as NonNullable<typeof document.contents>;
+    return { text: document.toString(), hadExistingAiand: false };
+  }
+  if (!isMap(document.contents)) {
+    return { error: "not-object" };
+  }
+
+  const root = document.contents as typeof document.contents & {
+    get(key: string, keepScalar?: boolean): unknown;
+    set(key: string, value: unknown): void;
+  };
+  const providersNode = root.get("providers", true);
+  if (providersNode !== undefined && !isMap(providersNode)) {
+    return { error: "providers-not-object" };
+  }
+
+  if (providersNode === undefined) {
+    root.set("providers", { [PI_FAMILY_PROVIDER_ID]: nextProvider });
+    return { text: document.toString(), hadExistingAiand: false };
+  }
+
+  const existingAiandNode = providersNode.get(PI_FAMILY_PROVIDER_ID, true);
+  if (existingAiandNode !== undefined && !isMap(existingAiandNode)) {
+    return { error: "aiand-not-object" };
+  }
+
+  providersNode.set(PI_FAMILY_PROVIDER_ID, nextProvider);
+  return {
+    text: document.toString(),
+    hadExistingAiand: existingAiandNode !== undefined,
+  };
 }
 
 async function writePiFamilyDocument(

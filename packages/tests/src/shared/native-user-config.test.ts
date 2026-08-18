@@ -247,6 +247,86 @@ describe("Pi-family shared helpers", () => {
     expect(raw).toContain("apiKey: AIAND_API_KEY");
   });
 
+  test("injectPiFamilyConfig aborts when providers is present but not an object", async () => {
+    const home = await tempHome();
+
+    const ompPath = path.join(piFamilyConfigDir("omp", home), "models.yml");
+    await mkdir(path.dirname(ompPath), { recursive: true });
+    const originalYaml = "# keep me\nproviders: nope\n";
+    await writeFile(ompPath, originalYaml, "utf8");
+    await expect(injectPiFamilyConfig("omp", home)).resolves.toEqual({
+      status: "aborted",
+      path: ompPath,
+      reason: "providers-not-object",
+    });
+    await expect(readFile(ompPath, "utf8")).resolves.toBe(originalYaml);
+
+    const piPath = path.join(piFamilyConfigDir("pi", home), "models.json");
+    await mkdir(path.dirname(piPath), { recursive: true });
+    const originalJson = '{\n  "providers": "nope"\n}\n';
+    await writeFile(piPath, originalJson, "utf8");
+    await expect(injectPiFamilyConfig("pi", home)).resolves.toEqual({
+      status: "aborted",
+      path: piPath,
+      reason: "providers-not-object",
+    });
+    await expect(readFile(piPath, "utf8")).resolves.toBe(originalJson);
+  });
+
+  test("injectPiFamilyConfig aborts when providers.aiand is present but not an object", async () => {
+    const home = await tempHome();
+
+    const ompPath = path.join(piFamilyConfigDir("omp", home), "models.yml");
+    await mkdir(path.dirname(ompPath), { recursive: true });
+    const originalYaml = "providers:\n  aiand: nope\n";
+    await writeFile(ompPath, originalYaml, "utf8");
+    await expect(injectPiFamilyConfig("omp", home)).resolves.toEqual({
+      status: "aborted",
+      path: ompPath,
+      reason: "aiand-not-object",
+    });
+    await expect(readFile(ompPath, "utf8")).resolves.toBe(originalYaml);
+
+    const primePath = path.join(piFamilyConfigDir("prime", home), "models.json");
+    await mkdir(path.dirname(primePath), { recursive: true });
+    const originalJson = '{\n  "providers": {\n    "aiand": "nope"\n  }\n}\n';
+    await writeFile(primePath, originalJson, "utf8");
+    await expect(injectPiFamilyConfig("prime", home)).resolves.toEqual({
+      status: "aborted",
+      path: primePath,
+      reason: "aiand-not-object",
+    });
+    await expect(readFile(primePath, "utf8")).resolves.toBe(originalJson);
+  });
+
+  test("injectPiFamilyConfig preserves yaml comments when merging aiand beside other providers", async () => {
+    const home = await tempHome();
+    const ompPath = path.join(piFamilyConfigDir("omp", home), "models.yml");
+    await mkdir(path.dirname(ompPath), { recursive: true });
+    await writeFile(
+      ompPath,
+      [
+        "# keep top comment",
+        "providers:",
+        "  # keep sibling comment",
+        "  other:",
+        "    api: existing",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const result = await injectPiFamilyConfig("omp", home);
+    expect(result).toEqual({ status: "created", path: ompPath });
+
+    const raw = await readFile(ompPath, "utf8");
+    expect(raw).toContain("# keep top comment");
+    expect(raw).toContain("# keep sibling comment");
+    expect(raw).toContain("other:");
+    expect(raw).toContain("api: existing");
+    expect(raw).toContain("aiand:");
+  });
+
   test("injectPiFamilyConfig aborts on invalid yaml/json", async () => {
     const home = await tempHome();
     const ompPath = path.join(piFamilyConfigDir("omp", home), "models.yml");
