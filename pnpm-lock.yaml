@@ -49,6 +49,9 @@ importers:
       '@aiandrelay/models':
         specifier: workspace:*
         version: link:../models
+      '@clack/prompts':
+        specifier: ^0.8.2
+        version: 0.8.2
       '@types/node':
         specifier: ^26.0.0
         version: 26.0.0
