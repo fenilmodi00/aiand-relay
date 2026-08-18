@@ -92,8 +92,7 @@ export async function runConfigure(
   clack.log.success("ai& API key saved to ~/.aiandrelay/config.json");
 
   const env = options.env ?? process.env;
-  const binaryPresent =
-    options.opencodeBinaryPresent ?? Boolean(resolveBinPath("opencode"));
+  const binaryPresent = options.opencodeBinaryPresent ?? Boolean(resolveBinPath("opencode"));
   const configDir = opencodeGlobalConfigDir({ home, env });
 
   if (!isOpencodePresent({ home, env, binaryPresent })) {
@@ -107,9 +106,7 @@ export async function runConfigure(
         clack.log.error(
           `OpenCode: left ${authResult.path} unchanged (auth.json is not valid JSON). Fix or move the file and re-run aiandrelay configure.`,
         );
-        clack.log.info(
-          "OpenCode: skipped provider inject because credentials were not written.",
-        );
+        clack.log.info("OpenCode: skipped provider inject because credentials were not written.");
       } else {
         if (authResult.status === "created") {
           clack.log.success(`OpenCode: saved ai& credentials to ${authResult.path}`);
@@ -165,7 +162,9 @@ export async function runConfigure(
     clack.log.info(
       `Ready to launch: ${launchable
         .map((h) => HARNESS_LABEL[h])
-        .join(", ")}. Run \`aiandrelay <harness>\` to start. \`aopencode\` still injects session settings and writes nothing on launch.`,
+        .join(
+          ", ",
+        )}. Run \`aiandrelay <harness>\` to start. \`aopencode\` still injects session settings and writes nothing on launch.`,
     );
   }
 

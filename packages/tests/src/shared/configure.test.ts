@@ -8,9 +8,7 @@ import * as clack from "@clack/prompts";
 import { runConfigure } from "../../../cli/src/lib/commands/global.js";
 import { readGlobalConfig, resolveStoredApiKey } from "../../../cli/src/lib/global-config.js";
 import { opencodeAuthJsonPath } from "../../../cli/src/lib/opencode/auth.js";
-import {
-  opencodeGlobalConfigDir,
-} from "../../../cli/src/lib/opencode/user-config.js";
+import { opencodeGlobalConfigDir } from "../../../cli/src/lib/opencode/user-config.js";
 import { OPENCODE_PROVIDER_ID } from "../../../cli/src/lib/opencode/defaults.js";
 
 const temporaryHomes: string[] = [];
@@ -113,9 +111,9 @@ describe("aiandrelay configure", () => {
 
     expect(ok).toBe(true);
     expect(existsSync(opencodeAuthJsonPath({ home, env }))).toBe(true);
-    expect(
-      existsSync(path.join(opencodeGlobalConfigDir({ home, env }), "opencode.json")),
-    ).toBe(true);
+    expect(existsSync(path.join(opencodeGlobalConfigDir({ home, env }), "opencode.json"))).toBe(
+      true,
+    );
   });
 
   test("auth abort skips config inject and still saves the relay key", async () => {
@@ -174,11 +172,7 @@ describe("aiandrelay configure", () => {
     const env = isolatedEnv(home);
     const configPath = path.join(opencodeGlobalConfigDir({ home, env }), "opencode.json");
     await mkdir(path.dirname(configPath), { recursive: true });
-    await writeFile(
-      configPath,
-      `${JSON.stringify({ providers: { x: {} } }, null, 2)}\n`,
-      "utf8",
-    );
+    await writeFile(configPath, `${JSON.stringify({ providers: { x: {} } }, null, 2)}\n`, "utf8");
     const error = vi.spyOn(clack.log, "error");
     const authPath = opencodeAuthJsonPath({ home, env });
 
@@ -207,7 +201,9 @@ describe("aiandrelay configure", () => {
 
     await runConfigure(home, { env, opencodeBinaryPresent: true });
 
-    const text = [...success.mock.calls, ...info.mock.calls].map((call) => String(call[0])).join("\n");
+    const text = [...success.mock.calls, ...info.mock.calls]
+      .map((call) => String(call[0]))
+      .join("\n");
     expect(text).toContain(
       `OpenCode: updated provider.aiand in ${configPath} (curated models refreshed; extra models kept)`,
     );

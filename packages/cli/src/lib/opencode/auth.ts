@@ -7,10 +7,7 @@ export type AuthWriteResult =
   | { status: "created" | "updated"; path: string }
   | { status: "aborted"; path: string; reason: "invalid-json" | "not-object" };
 
-export function opencodeAuthJsonPath(opts: {
-  home: string;
-  env: NodeJS.ProcessEnv;
-}): string {
+export function opencodeAuthJsonPath(opts: { home: string; env: NodeJS.ProcessEnv }): string {
   const dataHome = opts.env.XDG_DATA_HOME || path.join(opts.home, ".local", "share");
   return path.join(dataHome, "opencode", "auth.json");
 }

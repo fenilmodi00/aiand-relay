@@ -4,7 +4,10 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { AIAND_BASE_URL } from "@aiandrelay/models";
 import { AIAND_API_KEY_ENV_REF } from "../../../cli/src/lib/aiand-core.js";
-import { opencodeAuthJsonPath, upsertOpencodeAiandAuth } from "../../../cli/src/lib/opencode/auth.js";
+import {
+  opencodeAuthJsonPath,
+  upsertOpencodeAiandAuth,
+} from "../../../cli/src/lib/opencode/auth.js";
 import { buildOpencodeConfigJson } from "../../../cli/src/lib/opencode/core.js";
 import {
   OPENCODE_DEFAULT_MODEL,
@@ -21,7 +24,13 @@ import {
   opencodeGlobalConfigDir,
 } from "../../../cli/src/lib/opencode/user-config.js";
 
-const LOCKDOWN_KEYS = ["enabled_providers", "disabled_providers", "model", "agent", "whitelist"] as const;
+const LOCKDOWN_KEYS = [
+  "enabled_providers",
+  "disabled_providers",
+  "model",
+  "agent",
+  "whitelist",
+] as const;
 
 describe("buildUserOpencodeProvider", () => {
   test("matches aopencode npm/name/baseURL and curated models without secrets or lockdown", () => {

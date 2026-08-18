@@ -46,10 +46,7 @@ export function mergeUserOpencodeProvider(
   return merged;
 }
 
-export function opencodeGlobalConfigDir(opts: {
-  home: string;
-  env: NodeJS.ProcessEnv;
-}): string {
+export function opencodeGlobalConfigDir(opts: { home: string; env: NodeJS.ProcessEnv }): string {
   const configHome = opts.env.XDG_CONFIG_HOME || path.join(opts.home, ".config");
   return path.join(configHome, "opencode");
 }
@@ -98,7 +95,11 @@ export function locateOpencodeGlobalConfigFile(opts: {
 
 export type ConfigInjectResult =
   | { status: "created" | "merged"; path: string }
-  | { status: "aborted"; path: string; reason: "invalid-json" | "v2-schema" | "provider-not-object" | "aiand-not-object" };
+  | {
+      status: "aborted";
+      path: string;
+      reason: "invalid-json" | "v2-schema" | "provider-not-object" | "aiand-not-object";
+    };
 
 function newUserOpencodeDocument(): Record<string, unknown> {
   return {
