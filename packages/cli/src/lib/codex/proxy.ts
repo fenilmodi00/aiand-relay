@@ -13,10 +13,16 @@ import {
   compactionSummary,
   isCodexCompactPath,
   isCodexCompactionRequest,
+  isCodexMemoriesPath,
   isCodexResponsesPath,
   normalizeCodexPath,
   toCompactionPayload,
 } from "./compaction.js";
+import {
+  invalidMemoryTraces,
+  summarizeCodexMemories,
+  type CodexMemoriesRequest,
+} from "./memories.js";
 import { objectKeys } from "./content-format.js";
 import {
   resolveCodexRequestModel,
@@ -67,6 +73,42 @@ export async function handleCodexProxyRequest(
 
   if (req.method === "GET" && normalizeCodexPath(path) === CODEX_MODELS_PATH) {
     writeJson(res, 200, codexModelCatalog());
+    return;
+  }
+
+  // Durable memory: distill one or more task traces into keepable summaries.
+  if (req.method === "POST" && isCodexMemoriesPath(path)) {
+    const { body: memoriesBody } = await readJsonBodyWithSize(req);
+    const invalid = invalidMemoryTraces(memoriesBody);
+    if (invalid) {
+      writeOpenAIError(res, 400, "invalid_request_error", invalid);
+      return;
+    }
+    const memoryRequest = memoriesBody as CodexMemoriesRequest;
+    // Reuse the turn path's model resolution so the dedicated (cheap) memory
+    // model applies here too, rather than billing the user's coding model.
+    const memoryModel = resolveCodexRequestModel(
+      { model: memoryRequest.model, instructions: "## Memory Writing Agent:" } as ResponsesRequest,
+      options,
+    );
+    const abort = new AbortController();
+    res.once("close", () => {
+      if (!res.writableEnded) {
+        abort.abort();
+      }
+    });
+    const summarized = await perf.span("codex_memories", () =>
+      summarizeCodexMemories(
+        memoryRequest,
+        memoryModel.targetModelId,
+        memoryModel.definition,
+        options,
+        abort.signal,
+        (usage) => recordUsage(usage, options, memoryModel.definition),
+      ),
+    );
+    writeJson(res, 200, summarized);
+    perf.end({ status: res.statusCode, stream: false });
     return;
   }
 

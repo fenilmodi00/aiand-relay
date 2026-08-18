@@ -84,14 +84,35 @@ Native Anthropic/Codex `web_search` server tools are **not supported**. Custom f
 
 ## Configuration & env vars
 
-| Variable                          | Effect                                                                                                                                                 |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `AIAND_API_KEY`                   | ai& key (or set via `configure`).                                                                                                                      |
-| `AIAND_BASE_URL`                  | Override the API base (default `https://api.aiand.com/v1`).                                                                                            |
-| `AIANDRELAY_REASONING_EFFORT`     | `none`\|`low`\|`medium`\|`high`\|`max`. Default `none` for speed; raise for harder tasks.                                                              |
-| `AIANDRELAY_FALLBACK_MODEL`       | Model to fail over to when the target model returns no response headers (down/overloaded). Default `motif-technologies/motif-3`; set `off` to disable. |
-| `AIANDRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                                                                                          |
-| `AIANDRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                                 |
+| Variable                          | Effect                                                                                                                                                          |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AIAND_API_KEY`                   | ai& key (or set via `configure`).                                                                                                                               |
+| `AIAND_BASE_URL`                  | Override the API base (default `https://api.aiand.com/v1`).                                                                                                     |
+| `AIANDRELAY_REASONING_EFFORT`     | `none`\|`low`\|`medium`\|`high`\|`max`. Default `none` for speed; raise for harder tasks.                                                                       |
+| `AIANDRELAY_FALLBACK_MODEL`       | Model to fail over to when the target model returns no response headers (down/overloaded). Default `motif-technologies/motif-3`; set `off` to disable.          |
+| `AIANDRELAY_DISABLE_AUTOUPDATE=1` | Stop the installed binary from self-updating.                                                                                                                   |
+| `AIANDRELAY_TELEMETRY_URL`        | Opt in to telemetry by pointing at your own collector. Off by default.                                                                                          |
+| `AIANDRELAY_METER=1`              | Route the spawned harnesses (Pi, Prime, Hermes, DeepSeek, Grok, omp) through the daemon, so they get cost metering, model fallback and retries. Off by default. |
+| `AIANDRELAY_CACHE_READ_RATIO`     | Price of a cached input token as a fraction of the input price when the catalog leaves `cache_read` unpublished. Default `1`.                                   |
+| `AIANDRELAY_CODEX_MEMORY_MODEL`   | Model used to summarize Codex task traces for durable memory. Defaults to Motif 3.                                                                              |
+
+### Metering the spawned harnesses
+
+Claude and Codex are proxied, so the daemon meters every turn. The other
+harnesses hold the key and call ai& directly, which is why they report
+`$0.00`. `AIANDRELAY_METER=1` points them at the daemon instead:
+
+```bash
+AIANDRELAY_METER=1 npi --print "..."
+# ai& Relay ▸ Launching Pi Code with ai&.
+# [aiandrelay cost] session total: $0.0056 (1,518 in, 69 out)
+```
+
+They then share the same client as everyone else — automatic model fallback,
+the per-model circuit breaker and transient-fault retries — and the real ai&
+key stays inside the daemon (the harness only ever sees a local session token).
+If the daemon is unreachable the launcher says so and connects directly, so
+metering can never be the reason a session fails to start.
 
 The installed binary keeps itself up to date from `aiand-relay-6eb9031f.onbld.com`, throttled to once an hour, and swallows every failure. Dev/source runs never self-update.
 

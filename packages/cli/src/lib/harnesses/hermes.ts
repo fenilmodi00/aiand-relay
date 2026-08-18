@@ -5,6 +5,7 @@ import { resolveCodexModel } from "../codex/defaults.js";
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveAiandApiKey } from "../aiand-core.js";
+import { meteredEndpoint } from "../metered-spawn.js";
 import { aiandrelayHome } from "../paths.js";
 import { spawnBinary } from "../spawn-bin.js";
 
@@ -83,9 +84,17 @@ export default defineHarness({
     mkdirSync(home, { recursive: true, mode: 0o700 });
 
     const selectedModel = resolveCodexModel(ctx.main);
+    // Route through the daemon when metering is on, so this session's spend is
+    // tracked and it gets model fallback + retries like the proxied harnesses.
+    const endpoint = await meteredEndpoint({
+      agent: HARNESS.HERMES,
+      apiKey,
+      baseUrl: AIAND_BASE_URL,
+      model: selectedModel.definition,
+    });
     writeFileSync(
       join(home, "config.yaml"),
-      hermesConfigYaml({ defaultModel: selectedModel.id, baseUrl: AIAND_BASE_URL }),
+      hermesConfigYaml({ defaultModel: selectedModel.id, baseUrl: endpoint.baseUrl }),
       { encoding: "utf8", mode: 0o600 },
     );
 
@@ -104,7 +113,7 @@ export default defineHarness({
       env: {
         ...process.env,
         HERMES_HOME: home,
-        AIAND_API_KEY: apiKey,
+        AIAND_API_KEY: endpoint.apiKey,
       },
       stdio: "inherit",
     });
@@ -119,6 +128,7 @@ export default defineHarness({
       },
     );
 
+    await endpoint.finish();
     if (typeof result.status === "number") {
       process.exitCode = result.status;
     } else if (result.signal) {

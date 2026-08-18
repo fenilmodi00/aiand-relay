@@ -6,6 +6,7 @@ import { getCodexSupportedModels, resolveCodexModel } from "../codex/defaults.js
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveAiandApiKey } from "../aiand-core.js";
+import { meteredEndpoint } from "../metered-spawn.js";
 import { spawnBinary } from "../spawn-bin.js";
 
 const PI_PROVIDER_ID = "aiand";
@@ -41,7 +42,7 @@ function piArgsWithoutAiandrelayOverrides(args: string[]): string[] {
   return sanitized;
 }
 
-function writePiModelsJson(agentDir: string, apiKey: string): void {
+function writePiModelsJson(agentDir: string, apiKey: string, baseUrl: string): void {
   const models = getCodexSupportedModels().map(({ definition }) => ({
     id: definition.id,
     name: definition.name,
@@ -81,7 +82,7 @@ function writePiModelsJson(agentDir: string, apiKey: string): void {
             // ai& is not a Pi built-in provider, so declare it as a custom
             // OpenAI-compatible provider: baseUrl + api="openai-completions"
             // route Pi's requests through the ai& endpoint.
-            baseUrl: AIAND_BASE_URL,
+            baseUrl,
             api: "openai-completions",
             apiKey,
             // ai& runs on vLLM, which does not understand the OpenAI
@@ -126,8 +127,14 @@ export default defineHarness({
     const sessionDir =
       process.env.PI_CODING_AGENT_SESSION_DIR ??
       join(ctx.home || homedir(), ".pi", "agent", "sessions");
-    writePiModelsJson(agentDir, apiKey);
     const selectedModel = resolveCodexModel(ctx.main);
+    const endpoint = await meteredEndpoint({
+      agent: HARNESS.PI,
+      apiKey,
+      baseUrl: AIAND_BASE_URL,
+      model: selectedModel.definition,
+    });
+    writePiModelsJson(agentDir, endpoint.apiKey, endpoint.baseUrl);
     const supportedModels = piSupportedModels();
     const args = [
       "--provider",
@@ -137,7 +144,7 @@ export default defineHarness({
       "--models",
       supportedModels,
       "--api-key",
-      apiKey,
+      endpoint.apiKey,
       "--no-approve",
       "--no-extensions",
       "--no-skills",
@@ -160,7 +167,7 @@ export default defineHarness({
         ...process.env,
         PI_CODING_AGENT_DIR: agentDir,
         PI_CODING_AGENT_SESSION_DIR: sessionDir,
-        AIAND_API_KEY: apiKey,
+        AIAND_API_KEY: endpoint.apiKey,
       },
       stdio: "inherit",
     });
@@ -175,6 +182,7 @@ export default defineHarness({
       },
     );
 
+    await endpoint.finish();
     try {
       rmSync(agentDir, { recursive: true, force: true });
     } catch {

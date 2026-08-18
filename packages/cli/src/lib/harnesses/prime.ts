@@ -5,6 +5,7 @@ import { getCodexSupportedModels, resolveCodexModel } from "../codex/defaults.js
 import { HARNESS } from "../harness.js";
 import { defineHarness, type HarnessContext, type HarnessResult } from "../harness-types.js";
 import { resolveAiandApiKey } from "../aiand-core.js";
+import { meteredEndpoint } from "../metered-spawn.js";
 import { aiandrelayHome } from "../paths.js";
 import { spawnBinary } from "../spawn-bin.js";
 
@@ -60,7 +61,7 @@ function primeArgsWithoutAiandrelayOverrides(args: string[]): string[] {
 }
 
 /** ai& as a custom `openai-completions` provider in Prime Agent's models.json. */
-export function primeModelsJson(apiKey: string): string {
+export function primeModelsJson(apiKey: string, baseUrl: string = AIAND_BASE_URL): string {
   const models = getCodexSupportedModels().map(({ definition }) => ({
     id: definition.id,
     name: definition.name,
@@ -93,7 +94,7 @@ export function primeModelsJson(apiKey: string): string {
     {
       providers: {
         [PRIME_PROVIDER_ID]: {
-          baseUrl: AIAND_BASE_URL,
+          baseUrl,
           api: "openai-completions",
           apiKey,
           // ai& runs on vLLM, which does not understand the OpenAI
@@ -123,12 +124,22 @@ export default defineHarness({
 
     const agentDir = primeAgentDir();
     mkdirSync(agentDir, { recursive: true, mode: 0o700 });
-    writeFileSync(join(agentDir, "models.json"), primeModelsJson(apiKey), {
-      encoding: "utf8",
-      mode: 0o600,
-    });
 
     const selectedModel = resolveCodexModel(ctx.main);
+    const endpoint = await meteredEndpoint({
+      agent: HARNESS.PRIME,
+      apiKey,
+      baseUrl: AIAND_BASE_URL,
+      model: selectedModel.definition,
+    });
+    writeFileSync(
+      join(agentDir, "models.json"),
+      primeModelsJson(endpoint.apiKey, endpoint.baseUrl),
+      {
+        encoding: "utf8",
+        mode: 0o600,
+      },
+    );
     const args = [
       "--provider",
       PRIME_PROVIDER_ID,
@@ -150,7 +161,7 @@ export default defineHarness({
       env: {
         ...process.env,
         PRIME_AGENT_CODING_AGENT_DIR: agentDir,
-        AIAND_API_KEY: apiKey,
+        AIAND_API_KEY: endpoint.apiKey,
       },
       stdio: "inherit",
     });
@@ -165,6 +176,7 @@ export default defineHarness({
       },
     );
 
+    await endpoint.finish();
     if (typeof result.status === "number") {
       process.exitCode = result.status;
     }
