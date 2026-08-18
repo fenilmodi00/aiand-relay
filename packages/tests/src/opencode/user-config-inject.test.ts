@@ -11,6 +11,7 @@ import {
 } from "../../../cli/src/lib/opencode/defaults.js";
 import {
   buildUserOpencodeProvider,
+  injectOpencodeUserConfig,
   isOpencodePresent,
   locateOpencodeGlobalConfigFile,
   mergeUserOpencodeProvider,
@@ -327,5 +328,236 @@ describe("upsertOpencodeAiandAuth", () => {
     });
     expect(result).toEqual({ status: "aborted", path: filePath, reason: "not-object" });
     await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+  });
+});
+
+describe("injectOpencodeUserConfig", () => {
+  let home: string;
+  let env: NodeJS.ProcessEnv;
+
+  beforeEach(async () => {
+    home = await mkdtemp(path.join(os.tmpdir(), "aiandrelay-opencode-inject-"));
+    env = {
+      XDG_CONFIG_HOME: path.join(home, "xdg-config"),
+      XDG_DATA_HOME: path.join(home, "xdg-data"),
+    };
+  });
+
+  afterEach(async () => {
+    await rm(home, { recursive: true, force: true });
+  });
+
+  test("creates opencode.json with schema and only provider.aiand", async () => {
+    const result = await injectOpencodeUserConfig({ home, env });
+    const filePath = path.join(opencodeGlobalConfigDir({ home, env }), "opencode.json");
+    expect(result).toEqual({ status: "created", path: filePath });
+
+    const parsed = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+    expect(parsed.$schema).toBe("https://opencode.ai/config.json");
+    expect(Object.keys(parsed).sort()).toEqual(["$schema", "provider"]);
+    const provider = parsed.provider as Record<string, unknown>;
+    expect(Object.keys(provider)).toEqual(["aiand"]);
+    const aiand = provider.aiand as Record<string, unknown>;
+    expect(aiand).toEqual(buildUserOpencodeProvider());
+    expect(JSON.stringify(parsed)).not.toContain("enabled_providers");
+    expect(JSON.stringify(parsed)).not.toContain("disabled_providers");
+    expect(JSON.stringify(parsed)).not.toContain("whitelist");
+    expect(JSON.stringify(aiand)).not.toContain("apiKey");
+    expect(aiand).not.toHaveProperty("env");
+    expect(parsed).not.toHaveProperty("model");
+    expect(parsed).not.toHaveProperty("agent");
+  });
+
+  test("inserts aiand beside anthropic without lockdown or schema insert", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.json");
+    const original = {
+      provider: {
+        anthropic: { npm: "@ai-sdk/anthropic", name: "Anthropic" },
+      },
+      mcp: { demo: { type: "local", command: ["echo"] } },
+    };
+    await writeFile(filePath, `${JSON.stringify(original, null, 2)}\n`, "utf8");
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result).toEqual({ status: "created", path: filePath });
+    const parsed = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+    expect(parsed.$schema).toBeUndefined();
+    expect(parsed.mcp).toEqual(original.mcp);
+    const provider = parsed.provider as Record<string, unknown>;
+    expect(provider.anthropic).toEqual(original.provider.anthropic);
+    expect(provider.aiand).toEqual(buildUserOpencodeProvider());
+    expect(parsed).not.toHaveProperty("enabled_providers");
+    expect(parsed).not.toHaveProperty("disabled_providers");
+    expect(parsed).not.toHaveProperty("model");
+    expect(parsed).not.toHaveProperty("agent");
+  });
+
+  test("preserves JSONC comments and anthropic when patching jsonc", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.jsonc");
+    const original = `{
+  // keep this comment above provider
+  "provider": {
+    "anthropic": { "npm": "@ai-sdk/anthropic" }
+  }
+}
+`;
+    await writeFile(filePath, original, "utf8");
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result.status).toBe("created");
+    expect(result.path).toBe(filePath);
+    const text = await readFile(filePath, "utf8");
+    expect(text).toContain("keep this comment above provider");
+    expect(text).toContain('"anthropic"');
+    expect(text).toContain('"aiand"');
+  });
+
+  test("merges extras, refreshes curated models, and strips options.apiKey", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.json");
+    await writeFile(
+      filePath,
+      `${JSON.stringify(
+        {
+          provider: {
+            aiand: {
+              npm: "stale",
+              name: "stale",
+              options: {
+                apiKey: "{env:AIAND_API_KEY}",
+                baseURL: "https://example.invalid/v1",
+              },
+              models: {
+                "custom/foo": { name: "User extra" },
+                [OPENCODE_DEFAULT_MODEL]: { name: "stale curated name" },
+              },
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result).toEqual({ status: "merged", path: filePath });
+    const parsed = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+    const aiand = (parsed.provider as Record<string, unknown>).aiand as Record<string, unknown>;
+    expect(aiand.npm).toBe("@ai-sdk/openai-compatible");
+    expect(aiand.name).toBe("ai&");
+    const options = aiand.options as Record<string, unknown>;
+    expect(options.baseURL).toBe(AIAND_BASE_URL);
+    expect(options).not.toHaveProperty("apiKey");
+    const models = aiand.models as Record<string, unknown>;
+    expect(models["custom/foo"]).toEqual({ name: "User extra" });
+    expect(models[OPENCODE_DEFAULT_MODEL]).toEqual(opencodeModelEntries()[OPENCODE_DEFAULT_MODEL]);
+    expect(aiand).not.toHaveProperty("whitelist");
+    expect(aiand).not.toHaveProperty("env");
+  });
+
+  test("invalid JSON leaves the winning file unchanged", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.json");
+    const original = "{";
+    await writeFile(filePath, original, "utf8");
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result).toEqual({
+      status: "aborted",
+      path: filePath,
+      reason: "invalid-json",
+    });
+    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+  });
+
+  test("v2 providers without provider aborts without write", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.json");
+    const original = `${JSON.stringify({ providers: { aiand: { package: "x" } } }, null, 2)}\n`;
+    await writeFile(filePath, original, "utf8");
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result).toEqual({ status: "aborted", path: filePath, reason: "v2-schema" });
+    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+  });
+
+  test("both provider and providers is treated as v1 and patched", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.json");
+    await writeFile(
+      filePath,
+      `${JSON.stringify(
+        {
+          provider: { anthropic: { npm: "@ai-sdk/anthropic" } },
+          providers: { leftover: true },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result.status).toBe("created");
+    const parsed = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+    expect(parsed.providers).toEqual({ leftover: true });
+    const provider = parsed.provider as Record<string, unknown>;
+    expect(provider.anthropic).toEqual({ npm: "@ai-sdk/anthropic" });
+    expect(provider.aiand).toEqual(buildUserOpencodeProvider());
+  });
+
+  test("provider.aiand that is not an object aborts", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.json");
+    const original = `${JSON.stringify({ provider: { aiand: "nope" } }, null, 2)}\n`;
+    await writeFile(filePath, original, "utf8");
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result).toEqual({
+      status: "aborted",
+      path: filePath,
+      reason: "aiand-not-object",
+    });
+    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+  });
+
+  test("when both json and jsonc exist, only jsonc is patched", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const jsonc = path.join(dir, "opencode.jsonc");
+    const json = path.join(dir, "opencode.json");
+    const jsonOriginal = '{"keep":true}\n';
+    await writeFile(json, jsonOriginal, "utf8");
+    await writeFile(jsonc, `{\n  // comment\n  "provider": {}\n}\n`, "utf8");
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result.path).toBe(jsonc);
+    await expect(readFile(json, "utf8")).resolves.toBe(jsonOriginal);
+    const jsoncText = await readFile(jsonc, "utf8");
+    expect(jsoncText).toContain("// comment");
+    expect(jsoncText).toContain('"aiand"');
+  });
+
+  test("empty winning jsonc is rewritten in that filename with $schema", async () => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.jsonc");
+    await writeFile(filePath, "  \n", "utf8");
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result).toEqual({ status: "created", path: filePath });
+    const parsed = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
+    expect(parsed.$schema).toBe("https://opencode.ai/config.json");
+    expect((parsed.provider as Record<string, unknown>).aiand).toEqual(buildUserOpencodeProvider());
   });
 });

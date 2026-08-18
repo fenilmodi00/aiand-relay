@@ -1,7 +1,10 @@
 import { existsSync, lstatSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { AIAND_BASE_URL } from "@aiandrelay/models";
-import { opencodeModelEntries } from "./defaults.js";
+import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
+import { writeJsonAtomic, writeTextAtomic } from "../aiand-core.js";
+import { OPENCODE_PROVIDER_ID, opencodeModelEntries } from "./defaults.js";
 
 export type UserOpencodeProvider = {
   npm: string;
@@ -91,4 +94,68 @@ export function locateOpencodeGlobalConfigFile(opts: {
     return { dir, filePath: config, existed: true };
   }
   return { dir, filePath: json, existed: false };
+}
+
+export type ConfigInjectResult =
+  | { status: "created" | "merged"; path: string }
+  | { status: "aborted"; path: string; reason: "invalid-json" | "v2-schema" | "aiand-not-object" };
+
+function newUserOpencodeDocument(): Record<string, unknown> {
+  return {
+    $schema: "https://opencode.ai/config.json",
+    provider: {
+      [OPENCODE_PROVIDER_ID]: buildUserOpencodeProvider(),
+    },
+  };
+}
+
+export async function injectOpencodeUserConfig(opts: {
+  home: string;
+  env: NodeJS.ProcessEnv;
+}): Promise<ConfigInjectResult> {
+  const located = locateOpencodeGlobalConfigFile(opts);
+  const filePath = located.filePath;
+
+  if (!located.existed) {
+    await writeJsonAtomic(filePath, newUserOpencodeDocument());
+    return { status: "created", path: filePath };
+  }
+
+  const text = await readFile(filePath, "utf8");
+  if (text.trim() === "") {
+    await writeJsonAtomic(filePath, newUserOpencodeDocument());
+    return { status: "created", path: filePath };
+  }
+
+  const errors: ParseError[] = [];
+  const parsed: unknown = parse(text, errors);
+  if (errors.length > 0 || !isPlainObject(parsed)) {
+    return { status: "aborted", path: filePath, reason: "invalid-json" };
+  }
+
+  if ("providers" in parsed && !("provider" in parsed)) {
+    return { status: "aborted", path: filePath, reason: "v2-schema" };
+  }
+
+  const provider = parsed.provider;
+  const existingAiand =
+    isPlainObject(provider) && OPENCODE_PROVIDER_ID in provider
+      ? provider[OPENCODE_PROVIDER_ID]
+      : undefined;
+  if (existingAiand !== undefined && !isPlainObject(existingAiand)) {
+    return { status: "aborted", path: filePath, reason: "aiand-not-object" };
+  }
+
+  const nextAiand = isPlainObject(existingAiand)
+    ? mergeUserOpencodeProvider(existingAiand)
+    : buildUserOpencodeProvider();
+  const edits = modify(text, ["provider", OPENCODE_PROVIDER_ID], nextAiand, {
+    formattingOptions: { tabSize: 2, insertSpaces: true },
+  });
+  const nextText = applyEdits(text, edits);
+  await writeTextAtomic(filePath, nextText);
+  return {
+    status: isPlainObject(existingAiand) ? "merged" : "created",
+    path: filePath,
+  };
 }
