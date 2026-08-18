@@ -237,13 +237,103 @@ function mergePiFamilyJsonText(
     return { error: "aiand-not-object" };
   }
 
-  const edits = modify(text, ["providers", PI_FAMILY_PROVIDER_ID], nextProvider, {
+  const mergedAiand = isPlainObject(existingAiand)
+    ? mergeJsonAiandProvider(existingAiand, nextProvider)
+    : nextProvider;
+  const edits = modify(text, ["providers", PI_FAMILY_PROVIDER_ID], mergedAiand, {
     formattingOptions: { tabSize: 2, insertSpaces: true },
   });
   return {
     text: applyEdits(text, edits),
     hadExistingAiand: existingAiand !== undefined,
   };
+}
+
+function mergeJsonAiandProvider(
+  existingAiand: Record<string, unknown>,
+  nextProvider: PiFamilyProviderConfig,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = {
+    ...existingAiand,
+    baseUrl: nextProvider.baseUrl,
+    api: nextProvider.api,
+    authHeader: nextProvider.authHeader,
+    apiKey: nextProvider.apiKey,
+  };
+
+  const existingCompat = isPlainObject(existingAiand.compat) ? existingAiand.compat : undefined;
+  merged.compat = existingCompat
+    ? {
+        ...existingCompat,
+        supportsDeveloperRole: nextProvider.compat.supportsDeveloperRole,
+        supportsReasoningEffort: nextProvider.compat.supportsReasoningEffort,
+      }
+    : nextProvider.compat;
+
+  merged.models = mergeJsonAiandModels(existingAiand.models, nextProvider.models);
+  return merged;
+}
+
+function mergeJsonAiandModels(
+  existingModels: unknown,
+  nextModels: PiFamilyProviderModel[],
+): PiFamilyProviderModel[] | unknown[] {
+  if (!Array.isArray(existingModels)) {
+    return nextModels;
+  }
+
+  const existingById = new Map<string, Record<string, unknown>>();
+  const extras: unknown[] = [];
+  for (const model of existingModels) {
+    if (!isPlainObject(model) || typeof model.id !== "string") {
+      extras.push(model);
+      continue;
+    }
+    existingById.set(model.id, model);
+  }
+
+  const mergedModels = nextModels.map((nextModel) => {
+    const existingModel = existingById.get(nextModel.id);
+    if (!existingModel) {
+      return nextModel;
+    }
+
+    const mergedModel: Record<string, unknown> = {
+      ...existingModel,
+      id: nextModel.id,
+      name: nextModel.name,
+      reasoning: nextModel.reasoning,
+      input: nextModel.input,
+      contextWindow: nextModel.contextWindow,
+      maxTokens: nextModel.maxTokens,
+      cost: mergeJsonNestedRecord(existingModel.cost, nextModel.cost),
+    };
+    if (nextModel.thinkingLevelMap) {
+      mergedModel.thinkingLevelMap = mergeJsonNestedRecord(
+        existingModel.thinkingLevelMap,
+        nextModel.thinkingLevelMap,
+      );
+    }
+    return mergedModel;
+  });
+
+  for (const model of existingModels) {
+    if (!isPlainObject(model) || typeof model.id !== "string" || !existingById.has(model.id)) {
+      continue;
+    }
+    if (!nextModels.some((nextModel) => nextModel.id === model.id)) {
+      mergedModels.push(model);
+    }
+  }
+
+  return [...mergedModels, ...extras];
+}
+
+function mergeJsonNestedRecord(
+  existingValue: unknown,
+  nextValue: Record<string, string | number | boolean>,
+): Record<string, unknown> {
+  return isPlainObject(existingValue) ? { ...existingValue, ...nextValue } : nextValue;
 }
 
 function mergePiFamilyYamlText(

@@ -76,6 +76,55 @@ describe("Prime native injection adapter", () => {
     await expect(readFile(filePath, "utf8")).resolves.toBe(afterFirst);
   });
 
+  test("rerun preserves nested user-owned fields under providers.aiand", async () => {
+    const home = await tempHome();
+    const filePath = path.join(primeConfigDir(home), "models.json");
+
+    await expect(injectPrimeUserConfig(home)).resolves.toEqual({
+      status: "created",
+      path: filePath,
+    });
+
+    const seeded = JSON.parse(await readFile(filePath, "utf8")) as {
+      providers: {
+        aiand: {
+          compat: Record<string, unknown>;
+          models: Array<Record<string, unknown>>;
+        } & Record<string, unknown>;
+      };
+    };
+    const firstModel = seeded.providers.aiand.models[0];
+    seeded.providers.aiand.customTopLevel = { keep: true };
+    seeded.providers.aiand.compat.userToggle = "keep-me";
+    firstModel.userLabel = "keep-model-field";
+    firstModel.cost = {
+      ...(firstModel.cost as Record<string, unknown>),
+      negotiated: 7,
+    };
+
+    await writeFile(filePath, `${JSON.stringify(seeded, null, 2)}\n`, "utf8");
+
+    await expect(injectPrimeUserConfig(home)).resolves.toEqual({
+      status: "merged",
+      path: filePath,
+    });
+
+    const rerun = JSON.parse(await readFile(filePath, "utf8")) as {
+      providers: {
+        aiand: {
+          compat: Record<string, unknown>;
+          models: Array<Record<string, unknown>>;
+        } & Record<string, unknown>;
+      };
+    };
+    expect(rerun.providers.aiand.customTopLevel).toEqual({ keep: true });
+    expect(rerun.providers.aiand.compat.userToggle).toBe("keep-me");
+    const rerunFirstModel = rerun.providers.aiand.models.find((model) => model.id === firstModel.id);
+    expect(rerunFirstModel?.userLabel).toBe("keep-model-field");
+    expect((rerunFirstModel?.cost as Record<string, unknown>).negotiated).toBe(7);
+    expect(rerun.providers.aiand.baseUrl).toBe(AIAND_BASE_URL);
+  });
+
   test("aborts on invalid models.json without changing bytes", async () => {
     const home = await tempHome();
     const filePath = path.join(primeConfigDir(home), "models.json");
