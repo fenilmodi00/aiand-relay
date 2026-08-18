@@ -21,7 +21,9 @@ ai& serves open models over an OpenAI-compatible API. It does **not** speak the 
 - **Proxied harnesses** (Claude Code, Codex): a local daemon translates each request/response, tracks cost, retries transient failures, trims context to fit, and refuses native web_search server tools with a clear error.
 - **Spawned harnesses** (OpenCode, Pi, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, omp): launched with a generated provider config pointed at ai&, no proxy needed (they already speak ai&'s OpenAI-compatible format).
 
-Nothing about your agent install changes. The relay injects a base URL and API key per session and writes nothing permanent to your agent's config.
+Session launches (`aopencode`, `aclaude`, and the other harness commands) still inject a base URL and API key per process and do not rewrite the agent's config on launch.
+
+`aiandrelay configure`, when OpenCode is present (the `opencode` binary on PATH, or `~/.config/opencode` / `%USERPROFILE%\.config\opencode`), may add `provider.aiand` to the global OpenCode config and an `aiand` entry in OpenCode `auth.json`. That is a second plaintext copy of the same key already stored in `~/.aiandrelay/config.json`. Configure does not disable other providers and does not set the default model. Other harnesses still write nothing permanent to the agent's config.
 
 ## Install
 
@@ -73,6 +75,12 @@ Any extra arguments are passed straight through to the underlying agent:
 aclaude -p "explain this repo"
 acodex exec "add a test for the parser"
 ```
+
+### OpenCode: plain `opencode` vs `aopencode`
+
+If OpenCode is installed or `~/.config/opencode` exists (Windows: `%USERPROFILE%\.config\opencode\`, not AppData), `aiandrelay configure` registers ai& for plain `opencode`. Credentials go in OpenCode `auth.json` (`~/.local/share/opencode/auth.json`, Windows: `%USERPROFILE%\.local\share\opencode\auth.json`).
+
+Use `aopencode` (`aiandrelay opencode`) when you want the locked-down ai&-only session. That path still injects via `OPENCODE_CONFIG_CONTENT` and writes nothing on launch.
 
 ## Models
 

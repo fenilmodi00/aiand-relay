@@ -3,11 +3,14 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { AIAND_BASE_URL } from "@aiandrelay/models";
+import { AIAND_API_KEY_ENV_REF } from "../../../cli/src/lib/aiand-core.js";
 import { opencodeAuthJsonPath, upsertOpencodeAiandAuth } from "../../../cli/src/lib/opencode/auth.js";
+import { buildOpencodeConfigJson } from "../../../cli/src/lib/opencode/core.js";
 import {
   OPENCODE_DEFAULT_MODEL,
   OPENCODE_PROVIDER_ID,
   opencodeModelEntries,
+  opencodeModelWhitelist,
 } from "../../../cli/src/lib/opencode/defaults.js";
 import {
   buildUserOpencodeProvider,
@@ -559,5 +562,22 @@ describe("injectOpencodeUserConfig", () => {
     const parsed = JSON.parse(await readFile(filePath, "utf8")) as Record<string, unknown>;
     expect(parsed.$schema).toBe("https://opencode.ai/config.json");
     expect((parsed.provider as Record<string, unknown>).aiand).toEqual(buildUserOpencodeProvider());
+  });
+});
+
+describe("aopencode session config regression", () => {
+  test("buildOpencodeConfigJson still applies lockdown and uses env apiKey", () => {
+    const config = buildOpencodeConfigJson();
+    expect(config.enabled_providers).toEqual([OPENCODE_PROVIDER_ID]);
+    expect(config.disabled_providers).toEqual(["opencode"]);
+    const aiand = config.provider?.[OPENCODE_PROVIDER_ID] as {
+      options: { apiKey: string; baseURL: string };
+      whitelist?: string[];
+    };
+    expect(aiand.options.apiKey).toBe(AIAND_API_KEY_ENV_REF);
+    expect(aiand.options.apiKey).toBe("{env:AIAND_API_KEY}");
+    expect(aiand.whitelist).toEqual(opencodeModelWhitelist());
+    expect(config.model).toMatch(/^aiand\//);
+    expect(config.agent).toBeTruthy();
   });
 });
