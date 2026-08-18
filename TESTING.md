@@ -1,6 +1,6 @@
 # Testing
 
-Use these checks when changing the Claude local proxy or CLI launch path.
+Use these checks when changing the local proxy, configure flow, or CLI launch path.
 
 ## Regression-First Debugging
 
@@ -52,9 +52,19 @@ pnpm -F @aiandrelay/cli test
 
 Use these commands for quick live launches while validating a harness manually.
 
+### Configure expectations
+
+`aiandrelay configure` is now split across native-injected, wrapper-first, and wrapper-only outcomes:
+
+- Native config inject: OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp.
+- Wrapper-first defer: Claude Code. Configure must leave `~/.claude/settings.json` untouched and tell the user to keep using `aiandrelay claude`.
+- Wrapper-only: Codex CLI. Configure may save the relay key, but ai& routing still happens through `aiandrelay codex` / `acodex`, not a persisted Codex provider rewrite.
+
+When validating configure behavior, check both the file result and the user-facing message: success for created/updated artifacts, or `left unchanged (...)` for invalid/unsupported existing files.
+
 ### OpenCode
 
-OpenCode uses ephemeral ai& settings: `aiandrelay opencode` injects the ai& provider config only for that launch, so there is no `on`/`off` flow and no OpenCode config rewrite. OpenCode's own local session history can still persist normally.
+OpenCode launch remains ephemeral: `aiandrelay opencode` injects the ai& provider config only for that launch, so there is no launcher-time config rewrite. OpenCode's own local session history can still persist normally. Persistent plain-`opencode` setup now lives in `aiandrelay configure`.
 
 ```bash
 export AIAND_API_KEY="..."
@@ -64,7 +74,7 @@ pnpm -F @aiandrelay/cli exec aiandrelay opencode
 
 ### Claude Code
 
-Claude Code uses ephemeral ai& settings. `aiandrelay` does not write `~/.claude/settings.json` and there is no `claude on/off` flow to remember; Claude Code's own session/history behavior is left intact.
+Claude Code is wrapper-first and defer-only at configure time. `aiandrelay` does not write `~/.claude/settings.json`, and there is no persisted Claude "on/off" flow to remember; Claude Code's own session/history behavior is left intact.
 
 Launch Claude Code through the local ai& proxy:
 
@@ -92,7 +102,7 @@ pnpm -F @aiandrelay/cli exec aiandrelay --main qwen/qwen3.6-27b claude
 
 ### Codex
 
-Codex uses ephemeral ai& settings. `aiandrelay` launches the terminal `codex` CLI with per-run config flags and a local Responses-compatible proxy that translates Codex traffic to ai& chat completions, while leaving Codex's own session/history behavior intact.
+Codex CLI is wrapper-only for ai& routing. `aiandrelay` launches the terminal `codex` CLI with per-run config flags and a local Responses-compatible proxy that translates Codex traffic to ai& chat completions, while leaving Codex's own session/history behavior intact.
 
 Launch Codex through ai&:
 
@@ -130,7 +140,7 @@ Backups live under `~/.aiandrelay/backup/codex-app/`. The managed model catalog 
 
 ### Pi Code
 
-Pi Code uses ephemeral ai& settings with persistent sessions. `aiandrelay pi` uses Pi's official ai& provider (`together`) and a temporary `PI_CODING_AGENT_DIR` for per-run model config, while pointing `PI_CODING_AGENT_SESSION_DIR` at the normal local Pi sessions folder. It does not write Pi config, and Pi sessions can still be resumed normally.
+Pi Code launch remains ephemeral with persistent sessions. `aiandrelay pi` uses Pi's official ai& provider (`together`) and a temporary `PI_CODING_AGENT_DIR` for per-run model config, while pointing `PI_CODING_AGENT_SESSION_DIR` at the normal local Pi sessions folder. It does not rewrite the user's Pi config on launch, and Pi sessions can still be resumed normally. Persistent plain-`pi` setup now lives in `aiandrelay configure` (`~/.pi/agent/models.json` plus `auth.json`).
 
 Launch Pi Code through ai&:
 
@@ -151,7 +161,7 @@ api -p "Say hi"
 
 ### omp (Oh My Pi)
 
-omp is a dedicated spawned harness (not entangled with Pi). `aiandrelay omp` writes an omp-native `models.yml` into a persistent relay-owned agent dir (`~/.aiandrelay/omp` via `PI_CODING_AGENT_DIR`), forces provider/model onto ai&, and leaves the user's personal `~/.omp` untouched. Named profiles ignore `PI_CODING_AGENT_DIR`; relay launches assume default-profile semantics.
+omp is a dedicated spawned harness (not entangled with Pi). `aiandrelay omp` still writes an omp-native `models.yml` into a persistent relay-owned agent dir (`~/.aiandrelay/omp` via `PI_CODING_AGENT_DIR`) for launcher-time sessions and leaves the user's personal `~/.omp` untouched on launch. Named profiles ignore `PI_CODING_AGENT_DIR`; relay launches assume default-profile semantics. Persistent plain-`omp` setup now lives in `aiandrelay configure` (`~/.omp/agent/models.yml`).
 
 Install omp first (`bun install -g @oh-my-pi/pi-coding-agent`, or `curl -fsSL https://omp.sh/install | sh`, or on Windows `irm https://omp.sh/install.ps1 | iex`).
 
@@ -186,7 +196,7 @@ Model catalog check (`omp models`, not `--list-models`):
 pnpm -F @aiandrelay/cli exec aiandrelay omp -- models find kimi
 ```
 
-Confirm relay state lives under `~/.aiandrelay/omp` and personal `~/.omp` is not rewritten. Live suite: `pnpm -F @aiandrelay/tests test:omp` / `test:gauntlet:omp`.
+Confirm launcher relay state still lives under `~/.aiandrelay/omp`. For configure-time coverage, also verify `~/.omp/agent/models.yml` gets the native ai& provider entry without touching unrelated user config. Live suite: `pnpm -F @aiandrelay/tests test:omp` / `test:gauntlet:omp`.
 
 ## Claude Code Headless Smoke Tests
 

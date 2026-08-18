@@ -3,6 +3,7 @@ import { resolveCodexModel } from "../../../cli/src/lib/codex/defaults.js";
 import {
   buildDeepseekLaunchSpec,
   buildDeepseekPatch,
+  buildDeepseekPatchSource,
   DEEPSEEK_PROVIDER_ID,
 } from "../../../cli/src/lib/deepseek/core.js";
 import {
@@ -44,6 +45,18 @@ describe("deepseek cordis patch", () => {
     expect(launch.args).toEqual(["web", "--patch", "/tmp/patch.yml", "--verbose"]);
     expect(launch.env.AIAND_API_KEY).toBe("test-key");
   });
+
+  test("patch source stays credential-free and keeps the native provider when a native key exists", () => {
+    const selected = resolveCodexModel();
+    const nativeKey = "native-deepseek-key";
+    const patch = buildDeepseekPatch(selected, "https://api.aiand.com/v1", nativeKey);
+    const source = buildDeepseekPatchSource(selected, "https://api.aiand.com/v1", nativeKey);
+
+    expect(patch.some((entry) => entry.id === "llm-deepseek" && entry.disabled === true)).toBe(false);
+    expect(source).toContain("apiKeyEnv: AIAND_API_KEY");
+    expect(source).not.toContain(nativeKey);
+    expect(source).not.toContain("test-key");
+  });
 });
 
 describe("grok catalog and credential safety", () => {
@@ -57,8 +70,9 @@ describe("grok catalog and credential safety", () => {
 
   test("launch env disables xAI-native image/voice surfaces", () => {
     const selected = resolveCodexModel().definition;
+    const inheritedEnv = { GROK_AUTH: "user-login", GROK_HOME: "  " };
     const env = buildGrokLaunchEnvironment({
-      inheritedEnv: { GROK_AUTH: "user-login", GROK_HOME: "  " },
+      inheritedEnv,
       apiKey: "aiand-key",
       authPath: "/tmp/no-auth.json",
       baseUrl: "https://api.aiand.com/v1",
@@ -73,6 +87,8 @@ describe("grok catalog and credential safety", () => {
     expect(env.GROK_AUTH).toBeUndefined();
     expect(env.GROK_HOME).toBeUndefined();
     expect(env.GROK_XAI_API_BASE_URL).toBe("http://127.0.0.1:9/v1");
+    expect(env.GROK_AUTH_PATH).toBe("/tmp/no-auth.json");
+    expect(inheritedEnv.GROK_AUTH).toBe("user-login");
   });
 
   test("identity rule is prepended and model overrides are stripped", () => {
