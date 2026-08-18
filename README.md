@@ -103,6 +103,7 @@ That means reruns are safe: configure either adds the ai& provider state it know
 
 For the native OpenAI-compatible harnesses, `aiandrelay configure` now writes only the provider/config state each tool needs in its own user config directory:
 
+- OpenCode: `~/.config/opencode/` with `provider.aiand` and `auth.json` at `~/.local/share/opencode/auth.json` (Windows: `%USERPROFILE%\.config\opencode\` and `%USERPROFILE%\.local\share\opencode\auth.json`)
 - Pi Code: `~/.pi/agent/models.json` plus `~/.pi/agent/auth.json`
 - Prime Agent: `~/.prime/agent/models.json` plus `~/.prime/agent/auth.json`
 - Hermes Agent: `~/.hermes/config.yaml` plus `~/.hermes/.env`
