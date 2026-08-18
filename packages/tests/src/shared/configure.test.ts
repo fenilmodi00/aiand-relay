@@ -214,6 +214,22 @@ describe("aiandrelay configure", () => {
     expect(text).not.toContain("nothing is written to disk");
   });
 
+  test("provider-not-object prints the not-an-object message", async () => {
+    const home = await tempHome();
+    vi.stubEnv("AIAND_API_KEY", "sk-aiand-secret");
+    const env = isolatedEnv(home);
+    const configPath = path.join(opencodeGlobalConfigDir({ home, env }), "opencode.json");
+    await mkdir(path.dirname(configPath), { recursive: true });
+    await writeFile(configPath, `${JSON.stringify({ provider: "x" })}\n`, "utf8");
+    const error = vi.spyOn(clack.log, "error");
+
+    const ok = await runConfigure(home, { env, opencodeBinaryPresent: true });
+    expect(ok).toBe(true);
+    expect(error.mock.calls.map((call) => String(call[0])).join("\n")).toContain(
+      `OpenCode: left ${configPath} unchanged (top-level provider is not an object).`,
+    );
+  });
+
   test("aiand-not-object prints the not-an-object message", async () => {
     const home = await tempHome();
     vi.stubEnv("AIAND_API_KEY", "sk-aiand-secret");

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
@@ -185,6 +185,15 @@ describe("isOpencodePresent / locateOpencodeGlobalConfigFile", () => {
     await mkdir(path.dirname(dir), { recursive: true });
     await writeFile(dir, "not-a-directory", "utf8");
     expect(isOpencodePresent({ home, env, binaryPresent: false })).toBe(false);
+  });
+
+  test("symlinked config dir counts as present", async () => {
+    const realDir = path.join(home, "real-opencode-config");
+    await mkdir(realDir, { recursive: true });
+    const linkDir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(path.dirname(linkDir), { recursive: true });
+    await symlink(realDir, linkDir, process.platform === "win32" ? "junction" : "dir");
+    expect(isOpencodePresent({ home, env, binaryPresent: false })).toBe(true);
   });
 
   test("jsonc wins when jsonc, json, and config.json all exist", async () => {
@@ -516,6 +525,25 @@ describe("injectOpencodeUserConfig", () => {
     const provider = parsed.provider as Record<string, unknown>;
     expect(provider.anthropic).toEqual({ npm: "@ai-sdk/anthropic" });
     expect(provider.aiand).toEqual(buildUserOpencodeProvider());
+  });
+
+  test.each([
+    { provider: "x", label: "string" },
+    { provider: [], label: "array" },
+  ])("top-level provider that is a $label aborts without write", async ({ provider }) => {
+    const dir = opencodeGlobalConfigDir({ home, env });
+    await mkdir(dir, { recursive: true });
+    const filePath = path.join(dir, "opencode.json");
+    const original = `${JSON.stringify({ provider }, null, 2)}\n`;
+    await writeFile(filePath, original, "utf8");
+
+    const result = await injectOpencodeUserConfig({ home, env });
+    expect(result).toEqual({
+      status: "aborted",
+      path: filePath,
+      reason: "provider-not-object",
+    });
+    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
   });
 
   test("provider.aiand that is not an object aborts", async () => {

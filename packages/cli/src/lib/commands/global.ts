@@ -135,6 +135,10 @@ export async function runConfigure(
             clack.log.error(
               `OpenCode: left ${configResult.path} unchanged (OpenCode v2 providers schema). This release only writes v1 provider.aiand. Add ai& in that file manually; credentials were saved to ${authResult.path}.`,
             );
+          } else if (configResult.reason === "provider-not-object") {
+            clack.log.error(
+              `OpenCode: left ${configResult.path} unchanged (top-level provider is not an object).`,
+            );
           } else {
             clack.log.error(
               `OpenCode: left ${configResult.path} unchanged (provider.aiand exists but is not an object).`,

@@ -1,4 +1,4 @@
-import { existsSync, lstatSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { AIAND_BASE_URL } from "@aiandrelay/models";
@@ -64,7 +64,7 @@ export function isOpencodePresent(opts: {
   }
   const dir = opencodeGlobalConfigDir(opts);
   try {
-    return lstatSync(dir).isDirectory();
+    return statSync(dir).isDirectory();
   } catch {
     return false;
   }
@@ -98,7 +98,7 @@ export function locateOpencodeGlobalConfigFile(opts: {
 
 export type ConfigInjectResult =
   | { status: "created" | "merged"; path: string }
-  | { status: "aborted"; path: string; reason: "invalid-json" | "v2-schema" | "aiand-not-object" };
+  | { status: "aborted"; path: string; reason: "invalid-json" | "v2-schema" | "provider-not-object" | "aiand-not-object" };
 
 function newUserOpencodeDocument(): Record<string, unknown> {
   return {
@@ -135,6 +135,10 @@ export async function injectOpencodeUserConfig(opts: {
 
   if ("providers" in parsed && !("provider" in parsed)) {
     return { status: "aborted", path: filePath, reason: "v2-schema" };
+  }
+
+  if ("provider" in parsed && !isPlainObject(parsed.provider)) {
+    return { status: "aborted", path: filePath, reason: "provider-not-object" };
   }
 
   const provider = parsed.provider;
