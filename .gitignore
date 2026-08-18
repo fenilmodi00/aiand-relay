@@ -177,3 +177,6 @@ bun.lock
 
 .vercel
 .env*
+.superpowers
+docs/research/*
+docs/superpowers
