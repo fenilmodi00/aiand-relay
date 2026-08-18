@@ -23,7 +23,13 @@ ai& serves open models over an OpenAI-compatible API. It does **not** speak the 
 
 Session launches (`aopencode`, `aclaude`, and the other harness commands) still inject a base URL and API key per process and do not rewrite the agent's config on launch.
 
-`aiandrelay configure`, when OpenCode is present (the `opencode` binary on PATH, or `~/.config/opencode` / `%USERPROFILE%\.config\opencode`), may add `provider.aiand` to the global OpenCode config and an `aiand` entry in OpenCode `auth.json`. That is a second plaintext copy of the same key already stored in `~/.aiandrelay/config.json`. Configure does not disable other providers and does not set the default model. Other harnesses still write nothing permanent to the agent's config.
+`aiandrelay configure` now has three outcomes depending on the harness:
+
+- **Native config injected** for plain OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp when those tools are present.
+- **Wrapper-first / deferred** for Claude Code: configure explicitly leaves `~/.claude/settings.json` unchanged because a persisted Claude path would redirect all Claude traffic through a proxy.
+- **Wrapper-only with generic defaults left alone** for Codex CLI: launch `acodex` / `aiandrelay codex` when you want ai& routing.
+
+For the native-injected harnesses, configure keeps the add-only rule: it does not disable other providers and does not set the default model.
 
 ## Install
 
@@ -81,6 +87,30 @@ acodex exec "add a test for the parser"
 If OpenCode is installed or `~/.config/opencode` exists (Windows: `%USERPROFILE%\.config\opencode\`, not AppData), `aiandrelay configure` registers ai& for plain `opencode`. Credentials go in OpenCode `auth.json` (`~/.local/share/opencode/auth.json`, Windows: `%USERPROFILE%\.local\share\opencode\auth.json`).
 
 Use `aopencode` (`aiandrelay opencode`) when you want the locked-down ai&-only session. That path still injects via `OPENCODE_CONFIG_CONTENT` and writes nothing on launch.
+
+### What `configure` reports
+
+`aiandrelay configure` saves the relay API key first, then reports one of these outcomes per harness:
+
+- `found` / `not found` plus support status in the detection summary
+- success when auth/config files were created or updated
+- `left unchanged (...)` when an existing user file has an unsupported shape or invalid syntax
+- explicit skip/defer messaging for Claude Code and for tools that are not installed
+
+That means reruns are safe: configure either adds the ai& provider state it knows how to manage, or leaves the user's file untouched and tells you why.
+
+### Plain native harnesses after `configure`
+
+For the native OpenAI-compatible harnesses, `aiandrelay configure` now writes only the provider/config state each tool needs in its own user config directory:
+
+- Pi Code: `~/.pi/agent/models.json` plus `~/.pi/agent/auth.json`
+- Prime Agent: `~/.prime/agent/models.json` plus `~/.prime/agent/auth.json`
+- Hermes Agent: `~/.hermes/config.yaml` plus `~/.hermes/.env`
+- DeepSeek Harness: `~/.dsh/settings.yaml` (or `$DSH_HOME/settings.yaml`)
+- Grok Build: `~/.grok/config.toml` (or `$GROK_HOME/config.toml`)
+- omp: `~/.omp/agent/models.yml`
+
+The launcher commands (`api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, `aomp`) still build a per-run ai& session and may use additional relay-owned runtime state. `configure` is the persistent native integration step; the harness commands themselves still do not rewrite those user configs on launch.
 
 ## Models
 

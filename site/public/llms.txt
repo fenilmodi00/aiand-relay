@@ -1,8 +1,8 @@
 # aiandrelay
 
-> Use ai& models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp. aiandrelay injects ai& settings for a single run so your normal tool configs stay untouched.
+> Use ai& models in the coding-agent CLIs you already run - OpenCode, Claude Code, Codex CLI, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp. aiandrelay uses wrapper routing for Claude/Codex, can persist add-only native config for several OpenAI-compatible harnesses via `configure`, and still keeps launcher-time sessions ephemeral.
 
-aiandrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`acodex`, `aclaude`, `aopencode`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, `aomp`). For Claude Code and Codex CLI it routes the agent's API traffic to ai& through a local translation proxy; for OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp it injects per-run provider config (they already speak ai&'s OpenAI-compatible format, so no proxy is needed). The installed binary keeps itself up to date automatically from aiand-relay-6eb9031f.onbld.com.
+aiandrelay is an MIT-licensed CLI router. Install once, then launch your agent with short commands (`acodex`, `aclaude`, `aopencode`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, `aomp`). For Claude Code and Codex CLI it routes the agent's API traffic to ai& through a local translation proxy. For OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp it can both launch temporary ai&-managed sessions and, through `aiandrelay configure`, persist add-only native provider/config state in each tool's own user config. The installed binary keeps itself up to date automatically from aiand-relay-6eb9031f.onbld.com.
 
 This is the LLM-readable documentation file for the project. If you are an AI agent asked to install, configure, or use aiandrelay (headless or interactive), read this file first. It covers installation, configuration, every command, the available models, headless/agentic usage patterns, how to keep the tool up to date, and the routing architecture.
 
@@ -38,7 +38,7 @@ Before the first launch you need an ai& API key (get one at https://docs.aiand.c
 aiandrelay configure
 ```
 
-This stores your ai& API key in `~/.aiandrelay/`. Native Anthropic/Codex `web_search` server tools are not supported; custom function tools named `web_search` still pass through.
+This stores your ai& API key in `~/.aiandrelay/`. Configure then reports per harness whether ai& native settings were injected, skipped, or deliberately left unchanged. Native Anthropic/Codex `web_search` server tools are not supported; custom function tools named `web_search` still pass through.
 
 You can also set the key non-interactively:
 
@@ -48,6 +48,14 @@ aiandrelay configure        # stores it (skip prompts with the env present)
 ```
 
 The API key is required to actually route traffic; the installer lets you skip it (press Enter) and add it later.
+
+Current configure outcomes:
+
+- Native config injected when the tool is present: plain OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp.
+- Wrapper-first defer: Claude Code. Configure leaves `~/.claude/settings.json` unchanged and tells you to keep using `aiandrelay claude`.
+- Wrapper-only: Codex CLI. Configure keeps generic Codex defaults alone; ai& routing happens through `aiandrelay codex` / `acodex`.
+
+Configure is add-only for the native-injected harnesses: it adds or refreshes the ai& provider state it owns, does not disable other providers, and does not force the user's default model.
 
 ## Commands
 
@@ -104,7 +112,7 @@ Backups of your original config live under `~/.aiandrelay/backup/codex-app/`.
 
 ## Models
 
-The model list is fetched live from ai& (`GET /v1/models?verbose=true`) at startup, so every model ai& serves is available and each model's vision support (modality) comes straight from the API, not a hand-maintained list. Results are cached in `~/.aiandrelay/model-catalog.json` and fall back to a bundled snapshot when offline. The default for Codex and Claude Code is Kimi K3.
+The model list is fetched live from ai& (`GET /v1/models?verbose=true`) at startup, so every model ai& serves is available and each model's vision support (modality) comes straight from the API, not a hand-maintained list. Results are cached in `~/.aiandrelay/model-catalog.json` and fall back to a bundled snapshot when offline. The current defaults are `deepseek-ai/deepseek-v4-flash` for primary chat and `motif-technologies/motif-3` for text failover.
 
 ### Selecting a model (flag order matters)
 
@@ -116,21 +124,20 @@ aiandrelay --model moonshotai/kimi-k2.6 claude -p "task"
 aiandrelay --main aiand-kimi-k2-7-code claude -p "task"   # Claude matches alias OR id
 ```
 
-Do NOT put `--model` after the harness (e.g. `acodex --model X` or `aclaude --model X`). The short aliases expand to `aiandrelay <harness> ...`, so the flag lands after the harness name, goes to the agent's passthrough, and is then stripped - it is silently ignored and the run uses the default (Kimi K3), not the model you asked for. Always use the long form with the flag first.
+Do NOT put `--model` after the harness (e.g. `acodex --model X` or `aclaude --model X`). The short aliases expand to `aiandrelay <harness> ...`, so the flag lands after the harness name, goes to the agent's passthrough, and is then stripped - it is silently ignored and the run uses the current default model instead of the model you asked for. Always use the long form with the flag first.
 
 Featured flagship models (any live ai& id also works with `--model`):
 
-- `moonshotai/kimi-k3` - Kimi K3. Text-only, reasoning + agentic coding. The default coding model (note: ai& capacity for K3 can be flaky).
-- `moonshotai/kimi-k2.6` - Kimi K2.6. Vision + reasoning, 262K context. The vision flagship.
-- `moonshotai/kimi-k2.7-code` - Kimi K2.7 Code. Text-only coding model, 262K context.
-- `motif-technologies/motif-3` - MiniMax M3. Text-only, 196K context, fast and cheap.
-- `qwen/qwen3.6-27b` - Qwen 3.5 397B. Text-only, 262K context, general/coding flagship.
-- `deepseek-ai/deepseek-v4-pro` - DeepSeek V4 Pro. Text-only, 1M context, long-context reasoning.
-- `google/gemma-4-31b-it` - Qwen2.5-VL 72B. Vision, 32K context. The vision fallback.
+- `deepseek-ai/deepseek-v4-flash` - fast default coding/chat model
+- `zai-org/glm-5.2` - stronger agentic text model
+- `moonshotai/kimi-k2.6` - vision + reasoning
+- `moonshotai/kimi-k2.7-code` - coding + vision fallback chain input
+- `motif-technologies/motif-3` - text failover and cheap utility model
+- `qwen/qwen3.6-27b` - strong general/coding model
+- `deepseek-ai/deepseek-v4-pro` - long-context reasoning
+- `google/gemma-4-31b-it` - last-resort vision describe fallback
 
-Note: `zai-org/glm-5.2` was the previous default but ai& removed it from the live catalog (2026-07-27); `zai-org/GLM-5.1` is available in its place.
-
-Vision-capable models (those whose API modality includes image input, e.g. Kimi K2.6 and Qwen2.5-VL) accept image attachments directly; text-only models route images to a vision-capable model automatically (Claude/Codex proxy) or to the `@vision` subagent (OpenCode).
+Vision-capable models (those whose API modality includes image input) accept image attachments directly. The vision describe fallback chain is `moonshotai/kimi-k2.7-code` -> `moonshotai/kimi-k2.6` (if present) -> `google/gemma-4-31b-it`.
 
 ## Headless & agentic usage
 
@@ -227,9 +234,9 @@ You can check the installed version with `aiandrelay --version` and compare it a
 
 There are two harness families behind the tools:
 
-- **Proxied harnesses - Claude Code, Codex CLI.** `aclaude` and `acodex` spawn a shared local daemon and route the agent's `/v1/*` traffic through it. The daemon translates the agent's native wire format (Anthropic Messages for Claude, OpenAI Responses for Codex) to ai&'s chat-completions API and back. Per run: it resolves the model, ensures the daemon, registers a session with your token, prints a banner, spawns the agent pointed at the local proxy, tracks cost, and deregisters on exit. Nothing is written to your real agent config - close it and your setup is exactly as it was.
+- **Proxied harnesses - Claude Code, Codex CLI.** `aclaude` and `acodex` spawn a shared local daemon and route the agent's `/v1/*` traffic through it. The daemon translates the agent's native wire format (Anthropic Messages for Claude, OpenAI Responses for Codex) to ai&'s chat-completions API and back. Per run: it resolves the model, ensures the daemon, registers a session with your token, prints a banner, spawns the agent pointed at the local proxy, tracks cost, and deregisters on exit. Claude stays wrapper-first: configure intentionally does not persist proxy redirection in `~/.claude/settings.json`.
 
-- **Spawned harnesses - OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, omp.** `aopencode`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, and `aomp` spawn the agent binary directly. The binary talks to ai& itself, using ephemeral config injected only for that launch (OpenCode), a temporary `models.json` on disk (Pi), a relay-owned config dir under `~/.aiandrelay/prime-agent` (Prime Agent), a relay-owned `HERMES_HOME` under `~/.aiandrelay/hermes` (Hermes Agent; your real `~/.hermes` stays untouched), a content-addressed cordis YAML patch under `~/.aiandrelay/deepseek-harness` (DeepSeek Harness), an ephemeral localhost `/v1/models` catalog plus credential-isolated env (Grok Build; xAI image/voice surfaces disabled so the ai& key never reaches api.x.ai), or a relay-owned `models.yml` under `~/.aiandrelay/omp` via `PI_CODING_AGENT_DIR` (omp; your personal `~/.omp` stays untouched). No daemon, no proxy.
+- **OpenAI-compatible harnesses - OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, omp.** `aopencode`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, and `aomp` still launch ai&-managed sessions without rewriting those tools on launch. Separately, `aiandrelay configure` can persist add-only native provider/config state for the plain harness binaries in each tool's own user config. This is why plain `opencode`, `pi`, `prime-agent`, `hermes`, `dsh`, `grok`, and `omp` can gain ai& config support without changing the launcher semantics.
 
 The daemon is one persistent local process shared by all proxied sessions. If you ever need to stop it manually:
 
@@ -246,7 +253,7 @@ aiandrelay daemon stop
 - **Native web search fails** - expected. aiandrelay does not emulate Anthropic/Codex `web_search` server tools. Use a custom function tool if you need search.
 - **Headless run hangs and produces no edits** - you forgot `< /dev/null`. Close stdin and relaunch; see the Headless usage section.
 - **Cost seems high for a small change** - the agent over-documented. Scope the task tighter and add a "don't over-explain" instruction.
-- **Want your normal config back** - stop using the wrappers. No agent config was saved, so your OpenCode / Claude Code / Codex CLI / Pi Code setup is untouched. For ChatGPT Desktop, run `aiandrelay chatgpt --restore`.
+- **Want your normal config back** - if you only used wrapper launches, stop using the wrappers. For harnesses configured through `aiandrelay configure`, remove the added ai& provider/auth entries from that tool's own config if you no longer want plain native usage. Claude Code has no persisted aiandrelay config to undo. For ChatGPT Desktop, run `aiandrelay chatgpt --restore`.
 
 ## Links
 

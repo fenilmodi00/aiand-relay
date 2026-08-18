@@ -22,6 +22,7 @@
     "@aiandrelay/models": "workspace:*",
     "@clack/prompts": "^0.8.2",
     "jsonc-parser": "^3.3.1",
+    "smol-toml": "^1.8.0",
     "yaml": "^2.9.0"
   },
   "engines": {

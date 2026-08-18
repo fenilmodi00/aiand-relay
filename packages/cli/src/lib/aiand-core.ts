@@ -6,7 +6,8 @@ import type { HarnessContext } from "./harness-types.js";
 // Re-exported from the shared @aiandrelay/models manifest so the base URL
 // stays in one place; kept here to preserve this module's existing import surface.
 export const AIAND_BASE_URL = SHARED_AIAND_BASE_URL;
-export const AIAND_API_KEY_ENV_REF = "{env:AIAND_API_KEY}";
+export const AIAND_API_KEY_ENV_NAME = "AIAND_API_KEY";
+export const AIAND_API_KEY_ENV_REF = `{env:${AIAND_API_KEY_ENV_NAME}}`;
 
 /**
  * Resolve the ai& API root from the trusted launcher environment.
