@@ -396,7 +396,16 @@ function logPiFamilyConfigResult(
   result: {
     status: "created" | "merged" | "updated" | "aborted";
     path: string;
-    reason?: "invalid-json" | "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object";
+    reason?:
+      | "invalid-json"
+      | "invalid-yaml"
+      | "not-object"
+      | "providers-not-object"
+      | "aiand-not-object"
+      | "aiand-compat-not-object"
+      | "aiand-models-not-array"
+      | "aiand-model-cost-not-object"
+      | "aiand-model-thinking-level-map-not-object";
   },
 ): void {
   if (result.status === "aborted") {
@@ -435,7 +444,9 @@ function logDeepseekConfigResult(
       | "not-object"
       | "plugin-not-object"
       | "providers-not-object"
-      | "aiand-not-object";
+      | "aiand-not-object"
+      | "aiand-compat-not-object"
+      | "aiand-models-not-array";
   },
 ): void {
   if (result.status === "aborted") {
@@ -456,6 +467,10 @@ function formatPiFamilyConfigAbortReason(
     | "not-object"
     | "providers-not-object"
     | "aiand-not-object"
+    | "aiand-compat-not-object"
+    | "aiand-models-not-array"
+    | "aiand-model-cost-not-object"
+    | "aiand-model-thinking-level-map-not-object"
     | undefined,
 ): string {
   switch (reason) {
@@ -467,6 +482,14 @@ function formatPiFamilyConfigAbortReason(
       return "providers is not an object";
     case "aiand-not-object":
       return "providers.aiand is not an object";
+    case "aiand-compat-not-object":
+      return "providers.aiand.compat is not an object";
+    case "aiand-models-not-array":
+      return "providers.aiand.models is not an array/sequence";
+    case "aiand-model-cost-not-object":
+      return "providers.aiand.models[*].cost is not an object";
+    case "aiand-model-thinking-level-map-not-object":
+      return "providers.aiand.models[*].thinkingLevelMap is not an object";
     case "not-object":
     default:
       return "config root is not an object";
@@ -504,6 +527,8 @@ function formatDeepseekAbortReason(
     | "plugin-not-object"
     | "providers-not-object"
     | "aiand-not-object"
+    | "aiand-compat-not-object"
+    | "aiand-models-not-array"
     | undefined,
 ): string {
   switch (reason) {
@@ -515,6 +540,10 @@ function formatDeepseekAbortReason(
       return "llm-pi-ai.providers is not an object";
     case "aiand-not-object":
       return "llm-pi-ai.providers.aiand is not an object";
+    case "aiand-compat-not-object":
+      return "llm-pi-ai.providers.aiand.compat is not an object";
+    case "aiand-models-not-array":
+      return "llm-pi-ai.providers.aiand.models is not an array/sequence";
     case "not-object":
     default:
       return "config root is not an object";

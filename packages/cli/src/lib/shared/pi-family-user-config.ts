@@ -23,7 +23,11 @@ export type PiFamilyConfigErrorReason =
   | "invalid-yaml"
   | "not-object"
   | "providers-not-object"
-  | "aiand-not-object";
+  | "aiand-not-object"
+  | "aiand-compat-not-object"
+  | "aiand-models-not-array"
+  | "aiand-model-cost-not-object"
+  | "aiand-model-thinking-level-map-not-object";
 export type PiFamilyConfigResult = NativeInjectResult<PiFamilyConfigErrorReason>;
 export type PiFamilyAuthResult = NativeInjectResult<"invalid-json" | "not-object">;
 
@@ -236,6 +240,12 @@ function mergePiFamilyJsonText(
   if (existingAiand !== undefined && !isPlainObject(existingAiand)) {
     return { error: "aiand-not-object" };
   }
+  if (isPlainObject(existingAiand)) {
+    const nestedError = validatePiFamilyJsonAiand(existingAiand);
+    if (nestedError) {
+      return { error: nestedError };
+    }
+  }
 
   const mergedAiand = isPlainObject(existingAiand)
     ? mergeJsonAiandProvider(existingAiand, nextProvider)
@@ -336,6 +346,38 @@ function mergeJsonNestedRecord(
   return isPlainObject(existingValue) ? { ...existingValue, ...nextValue } : nextValue;
 }
 
+function validatePiFamilyJsonAiand(
+  existingAiand: Record<string, unknown>,
+): Exclude<
+  PiFamilyConfigErrorReason,
+  "invalid-json" | "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object"
+> | undefined {
+  if ("compat" in existingAiand && existingAiand.compat !== undefined && !isPlainObject(existingAiand.compat)) {
+    return "aiand-compat-not-object";
+  }
+  if ("models" in existingAiand && existingAiand.models !== undefined) {
+    if (!Array.isArray(existingAiand.models)) {
+      return "aiand-models-not-array";
+    }
+    for (const model of existingAiand.models) {
+      if (!isPlainObject(model)) {
+        continue;
+      }
+      if ("cost" in model && model.cost !== undefined && !isPlainObject(model.cost)) {
+        return "aiand-model-cost-not-object";
+      }
+      if (
+        "thinkingLevelMap" in model &&
+        model.thinkingLevelMap !== undefined &&
+        !isPlainObject(model.thinkingLevelMap)
+      ) {
+        return "aiand-model-thinking-level-map-not-object";
+      }
+    }
+  }
+  return undefined;
+}
+
 function mergePiFamilyYamlText(
   text: string,
   nextProvider: PiFamilyProviderConfig,
@@ -382,6 +424,10 @@ function mergePiFamilyYamlText(
       hadExistingAiand: false,
     };
   }
+  const nestedError = validatePiFamilyYamlAiand(existingAiandNode as MutableYamlMap);
+  if (nestedError) {
+    return { error: nestedError };
+  }
 
   if (harness === "omp") {
     mergeOmpAiandProvider(existingAiandNode, nextProvider, document);
@@ -408,6 +454,41 @@ type MutableYamlSeq = {
 type YamlScalarLike = {
   value: unknown;
 };
+
+function validatePiFamilyYamlAiand(
+  aiand: MutableYamlMap,
+): Exclude<
+  PiFamilyConfigErrorReason,
+  "invalid-json" | "invalid-yaml" | "not-object" | "providers-not-object" | "aiand-not-object"
+> | undefined {
+  const compatNode = aiand.get("compat", true);
+  if (compatNode !== undefined && !isMap(compatNode)) {
+    return "aiand-compat-not-object";
+  }
+
+  const modelsNode = aiand.get("models", true);
+  if (modelsNode !== undefined) {
+    if (!isSeq(modelsNode)) {
+      return "aiand-models-not-array";
+    }
+    for (const item of modelsNode.items) {
+      if (!isMap(item)) {
+        continue;
+      }
+      const model = item as MutableYamlMap;
+      const costNode = model.get("cost", true);
+      if (costNode !== undefined && !isMap(costNode)) {
+        return "aiand-model-cost-not-object";
+      }
+      const thinkingLevelMapNode = model.get("thinkingLevelMap", true);
+      if (thinkingLevelMapNode !== undefined && !isMap(thinkingLevelMapNode)) {
+        return "aiand-model-thinking-level-map-not-object";
+      }
+    }
+  }
+
+  return undefined;
+}
 
 function mergeOmpAiandProvider(
   existingAiandNode: unknown,

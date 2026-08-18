@@ -299,6 +299,136 @@ describe("Pi-family shared helpers", () => {
     await expect(readFile(primePath, "utf8")).resolves.toBe(originalJson);
   });
 
+  test.each([
+    {
+      name: "pi json compat is not an object",
+      harness: "pi" as const,
+      fileName: "models.json",
+      original: [
+        "{",
+        '  "providers": {',
+        '    "aiand": {',
+        '      "compat": "nope"',
+        "    }",
+        "  }",
+        "}",
+        "",
+      ].join("\n"),
+      reason: "aiand-compat-not-object",
+    },
+    {
+      name: "prime json models is not an array",
+      harness: "prime" as const,
+      fileName: "models.json",
+      original: [
+        "{",
+        '  "providers": {',
+        '    "aiand": {',
+        '      "models": "nope"',
+        "    }",
+        "  }",
+        "}",
+        "",
+      ].join("\n"),
+      reason: "aiand-models-not-array",
+    },
+    {
+      name: "pi json model cost is not an object",
+      harness: "pi" as const,
+      fileName: "models.json",
+      original: [
+        "{",
+        '  "providers": {',
+        '    "aiand": {',
+        '      "models": [',
+        '        { "id": "openai/gpt-5", "cost": "nope" }',
+        "      ]",
+        "    }",
+        "  }",
+        "}",
+        "",
+      ].join("\n"),
+      reason: "aiand-model-cost-not-object",
+    },
+    {
+      name: "pi json model thinkingLevelMap is not an object",
+      harness: "pi" as const,
+      fileName: "models.json",
+      original: [
+        "{",
+        '  "providers": {',
+        '    "aiand": {',
+        '      "models": [',
+        '        { "id": "anthropic/claude-3.7-sonnet", "thinkingLevelMap": "nope" }',
+        "      ]",
+        "    }",
+        "  }",
+        "}",
+        "",
+      ].join("\n"),
+      reason: "aiand-model-thinking-level-map-not-object",
+    },
+    {
+      name: "omp yaml compat is not an object",
+      harness: "omp" as const,
+      fileName: "models.yml",
+      original: ["providers:", "  aiand:", "    compat: nope", ""].join("\n"),
+      reason: "aiand-compat-not-object",
+    },
+    {
+      name: "omp yaml models is not a sequence",
+      harness: "omp" as const,
+      fileName: "models.yml",
+      original: ["providers:", "  aiand:", "    models: nope", ""].join("\n"),
+      reason: "aiand-models-not-array",
+    },
+    {
+      name: "omp yaml model cost is not an object",
+      harness: "omp" as const,
+      fileName: "models.yml",
+      original: [
+        "providers:",
+        "  aiand:",
+        "    models:",
+        "      - id: openai/gpt-5",
+        "        cost: nope",
+        "",
+      ].join("\n"),
+      reason: "aiand-model-cost-not-object",
+    },
+    {
+      name: "omp yaml model thinkingLevelMap is not an object",
+      harness: "omp" as const,
+      fileName: "models.yml",
+      original: [
+        "providers:",
+        "  aiand:",
+        "    models:",
+        "      - id: anthropic/claude-3.7-sonnet",
+        "        thinkingLevelMap: nope",
+        "",
+      ].join("\n"),
+      reason: "aiand-model-thinking-level-map-not-object",
+    },
+  ])("injectPiFamilyConfig aborts when nested managed aiand content is malformed: $name", async ({
+    harness,
+    fileName,
+    original,
+    reason,
+  }) => {
+    const home = await tempHome();
+    const filePath = path.join(piFamilyConfigDir(harness, home), fileName);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, original, "utf8");
+
+    await expect(injectPiFamilyConfig(harness, home)).resolves.toEqual({
+      status: "aborted",
+      path: filePath,
+      reason,
+    });
+    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+  });
+
   test("injectPiFamilyConfig preserves yaml comments when merging aiand beside other providers", async () => {
     const home = await tempHome();
     const ompPath = path.join(piFamilyConfigDir("omp", home), "models.yml");

@@ -16,7 +16,9 @@ export type DeepseekConfigErrorReason =
   | "not-object"
   | "plugin-not-object"
   | "providers-not-object"
-  | "aiand-not-object";
+  | "aiand-not-object"
+  | "aiand-compat-not-object"
+  | "aiand-models-not-array";
 export type DeepseekConfigResult = NativeInjectResult<DeepseekConfigErrorReason>;
 
 export function deepseekConfigDir(opts: { home: string; env: NodeJS.ProcessEnv }): string {
@@ -174,6 +176,25 @@ type YamlScalarLike = {
   value: unknown;
 };
 
+function validateDeepseekYamlAiand(
+  aiand: MutableYamlMap,
+): Exclude<
+  DeepseekConfigErrorReason,
+  "invalid-yaml" | "not-object" | "plugin-not-object" | "providers-not-object" | "aiand-not-object"
+> | undefined {
+  const compatNode = aiand.get("compat", true);
+  if (compatNode !== undefined && !isMap(compatNode)) {
+    return "aiand-compat-not-object";
+  }
+
+  const modelsNode = aiand.get("models", true);
+  if (modelsNode !== undefined && !isSeq(modelsNode)) {
+    return "aiand-models-not-array";
+  }
+
+  return undefined;
+}
+
 function mergeDeepseekYamlText(
   text: string,
   nextProvider: DeepseekProviderConfig,
@@ -226,6 +247,10 @@ function mergeDeepseekYamlText(
   if (aiandNode === undefined) {
     providersMap.set("aiand", nextProvider);
     return { text: document.toString(), hadExistingAiand: false };
+  }
+  const nestedError = validateDeepseekYamlAiand(aiandNode as MutableYamlMap);
+  if (nestedError) {
+    return { error: nestedError };
   }
 
   mergeDeepseekProviderNode(aiandNode as MutableYamlMap, nextProvider, document);

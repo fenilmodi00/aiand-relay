@@ -176,4 +176,30 @@ describe("DeepSeek native user config", () => {
     });
     await expect(readFile(filePath, "utf8")).resolves.toBe(original);
   });
+
+  test.each([
+    {
+      name: "compat is not an object",
+      original: ["llm-pi-ai:", "  providers:", "    aiand:", "      compat: nope", ""].join("\n"),
+      reason: "aiand-compat-not-object",
+    },
+    {
+      name: "models is not a sequence",
+      original: ["llm-pi-ai:", "  providers:", "    aiand:", "      models: nope", ""].join("\n"),
+      reason: "aiand-models-not-array",
+    },
+  ])("aborts when nested managed aiand content is malformed: $name", async ({ original, reason }) => {
+    const home = await tempHome();
+    const env = { DSH_HOME: path.join(home, ".dsh") };
+    const filePath = deepseekSettingsPath({ home, env });
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, original, "utf8");
+
+    await expect(injectDeepseekUserConfig({ home, env })).resolves.toEqual({
+      status: "aborted",
+      path: filePath,
+      reason,
+    });
+    await expect(readFile(filePath, "utf8")).resolves.toBe(original);
+  });
 });
