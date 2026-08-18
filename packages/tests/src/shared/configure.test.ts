@@ -540,6 +540,7 @@ describe("aiandrelay configure", () => {
       env,
       opencodeBinaryPresent: false,
       binaryPresence: {
+        codex: false,
         pi: false,
         omp: false,
         prime: false,
@@ -567,6 +568,7 @@ describe("aiandrelay configure", () => {
     expect(existsSync(claudeSettingsPath(home))).toBe(false);
 
     const text = info.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(text).toContain("Codex: not found (wrapper support; configure keeps generic defaults only)");
     expect(text).toContain("OpenCode: not found (configure can inject native settings)");
     expect(text).toContain("Pi Code: not found (configure can inject native settings)");
     expect(text).toContain("omp: not found (configure can inject native settings)");
@@ -586,11 +588,7 @@ describe("aiandrelay configure", () => {
     expect(text).toContain(
       `Claude Code: left ${claudeSettingsPath(home)} unchanged (native custom providers are not supported safely). Continue using \`aiandrelay claude\` for ai& access.`,
     );
-    expect(text).toContain("Ready to launch: Codex.");
-    expect(text).toContain(
-      "`aopencode` still injects session settings and writes nothing on launch",
-    );
-  });
+    });
 
   test("Claude path hit logs explicit defer and leaves settings untouched", async () => {
     const home = await tempHome();
