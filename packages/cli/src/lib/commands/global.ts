@@ -124,22 +124,24 @@ export async function runConfigure(
             clack.log.success(
               `OpenCode: updated provider.aiand in ${configResult.path} (curated models refreshed; extra models kept)`,
             );
-          } else if (configResult.reason === "invalid-json") {
-            clack.log.error(
-              `OpenCode: left ${configResult.path} unchanged (invalid JSON). Fix the file and re-run aiandrelay configure.`,
-            );
-          } else if (configResult.reason === "v2-schema") {
-            clack.log.error(
-              `OpenCode: left ${configResult.path} unchanged (OpenCode v2 providers schema). This release only writes v1 provider.aiand. Add ai& in that file manually; credentials were saved to ${authResult.path}.`,
-            );
-          } else if (configResult.reason === "provider-not-object") {
-            clack.log.error(
-              `OpenCode: left ${configResult.path} unchanged (top-level provider is not an object).`,
-            );
-          } else {
-            clack.log.error(
-              `OpenCode: left ${configResult.path} unchanged (provider.aiand exists but is not an object).`,
-            );
+          } else if (configResult.status === "aborted") {
+            if (configResult.reason === "invalid-json") {
+              clack.log.error(
+                `OpenCode: left ${configResult.path} unchanged (invalid JSON). Fix the file and re-run aiandrelay configure.`,
+              );
+            } else if (configResult.reason === "v2-schema") {
+              clack.log.error(
+                `OpenCode: left ${configResult.path} unchanged (OpenCode v2 providers schema). This release only writes v1 provider.aiand. Add ai& in that file manually; credentials were saved to ${authResult.path}.`,
+              );
+            } else if (configResult.reason === "provider-not-object") {
+              clack.log.error(
+                `OpenCode: left ${configResult.path} unchanged (top-level provider is not an object).`,
+              );
+            } else {
+              clack.log.error(
+                `OpenCode: left ${configResult.path} unchanged (provider.aiand exists but is not an object).`,
+              );
+            }
           }
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
