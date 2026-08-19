@@ -91,11 +91,17 @@ export async function backupPaths(
     createdAt: new Date().toISOString(),
     entries,
   };
-  await writeTextAtomic(manifestPath(relayHome, harnessId), `${JSON.stringify(manifest, null, 2)}\n`);
+  await writeTextAtomic(
+    manifestPath(relayHome, harnessId),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  );
   return manifest;
 }
 
-export async function restoreSnapshot(relayHome: string, harnessId: HarnessId): Promise<"restored" | "missing"> {
+export async function restoreSnapshot(
+  relayHome: string,
+  harnessId: HarnessId,
+): Promise<"restored" | "missing"> {
   const manifest = await readSnapshotManifest(relayHome, harnessId);
   if (!manifest) {
     return "missing";

@@ -369,11 +369,7 @@ async function main() {
     return;
   }
 
-  const invocation = resolveHarnessInvocation(
-    parsed.positional,
-    parsed.flags,
-    parsed.harnessVerb,
-  );
+  const invocation = resolveHarnessInvocation(parsed.positional, parsed.flags, parsed.harnessVerb);
 
   if (isHarnessCommand(invocation.command)) {
     const needsKey = invocation.verb === "on" || invocation.verb === "run";

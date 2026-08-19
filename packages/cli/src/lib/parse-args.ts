@@ -50,7 +50,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
   };
 
   const relayFlagsAllowed = () =>
-    harnessVerb === undefined || harnessVerb === "on" || harnessVerb === "off" || harnessVerb === "status" || harnessVerb === "help";
+    harnessVerb === undefined ||
+    harnessVerb === "on" ||
+    harnessVerb === "off" ||
+    harnessVerb === "status" ||
+    harnessVerb === "help";
 
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];

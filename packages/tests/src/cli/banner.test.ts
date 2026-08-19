@@ -20,7 +20,13 @@ describe("install banner", () => {
   });
 
   test("install.sh prints the banner on the finish screen", async () => {
-    const repoRoot = path.join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
+    const repoRoot = path.join(
+      fileURLToPath(new URL(".", import.meta.url)),
+      "..",
+      "..",
+      "..",
+      "..",
+    );
     const install = await readFile(path.join(repoRoot, "scripts", "install.sh"), "utf8");
     expect(install).toContain("aiandrelay banner install");
     expect((install.match(/banner install/g) ?? []).length).toBe(1);

@@ -568,9 +568,7 @@ describe("aiandrelay configure", () => {
     expect(existsSync(claudeSettingsPath(home))).toBe(false);
 
     const text = info.mock.calls.map((call) => String(call[0])).join("\n");
-    expect(text).toContain(
-      "Codex: not found (run aiandrelay codex on for native daemon routing)",
-    );
+    expect(text).toContain("Codex: not found (run aiandrelay codex on for native daemon routing)");
     expect(text).toContain("OpenCode: not found (configure turns this on; add-only inject)");
     expect(text).toContain("Pi Code: not found (configure turns this on; add-only inject)");
     expect(text).toContain("omp: not found (configure turns this on; add-only inject)");

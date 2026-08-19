@@ -5,12 +5,7 @@ import { detectInstalledHarness, missingHarnessMessage } from "../detect.js";
 import { initModelCatalog } from "../model-catalog-init.js";
 import type { HarnessContext } from "../harness-types.js";
 import type { HarnessVerb } from "../harness-verbs.js";
-import {
-  engineOff,
-  engineOn,
-  engineStatus,
-  printHarnessHelp,
-} from "../enablement/engine.js";
+import { engineOff, engineOn, engineStatus, printHarnessHelp } from "../enablement/engine.js";
 
 export async function dispatchHarnessCommand(
   harnessName: string | undefined,

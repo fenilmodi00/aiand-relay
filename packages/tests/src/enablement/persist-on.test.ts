@@ -22,7 +22,7 @@ describe("persist enablement", () => {
     const configDir = path.join(home, "xdg-config", "opencode");
     await mkdir(configDir, { recursive: true });
     const configPath = path.join(configDir, "opencode.json");
-    const original = "{\n  // keep\n  \"$schema\": \"https://opencode.ai/config.json\"\n}\n";
+    const original = '{\n  // keep\n  "$schema": "https://opencode.ai/config.json"\n}\n';
     await import("node:fs/promises").then((fs) => fs.writeFile(configPath, original, "utf8"));
 
     await engineOn("opencode", { home, apiKey: "sk-test" });

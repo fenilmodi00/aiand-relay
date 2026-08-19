@@ -112,7 +112,9 @@ export async function isAiandrelayOwned(filePath: string): Promise<boolean> {
   }
 }
 
-async function removePath(pathToRemove: string): Promise<{ path: string; message: string } | undefined> {
+async function removePath(
+  pathToRemove: string,
+): Promise<{ path: string; message: string } | undefined> {
   try {
     await rm(pathToRemove, { recursive: true, force: true });
     return undefined;

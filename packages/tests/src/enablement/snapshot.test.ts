@@ -2,7 +2,11 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { backupPaths, hasSnapshot, restoreSnapshot } from "../../../cli/src/lib/enablement/snapshot.js";
+import {
+  backupPaths,
+  hasSnapshot,
+  restoreSnapshot,
+} from "../../../cli/src/lib/enablement/snapshot.js";
 
 const homes: string[] = [];
 
@@ -21,7 +25,7 @@ describe("enablement snapshot", () => {
     const relayHome = await tempRelayHome();
     const file = path.join(relayHome, "user", "opencode.jsonc");
     await mkdir(path.dirname(file), { recursive: true });
-    const original = "{\n  // keep me\n  \"provider\": {}\n}\n";
+    const original = '{\n  // keep me\n  "provider": {}\n}\n';
     await writeFile(file, original, "utf8");
 
     await backupPaths(relayHome, "opencode", [file]);

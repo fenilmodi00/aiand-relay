@@ -9,7 +9,12 @@ import {
 import { injectPiUserConfig, piAuthJsonPath, upsertPiAuth } from "../pi/user-config.js";
 import { injectPrimeUserConfig, primeAuthJsonPath, upsertPrimeAuth } from "../prime/user-config.js";
 import { injectOmpUserConfig, locateOmpModelsFile } from "../omp/user-config.js";
-import { hermesConfigPath, hermesEnvPath, injectHermesUserConfig, upsertHermesEnvKey } from "../hermes/user-config.js";
+import {
+  hermesConfigPath,
+  hermesEnvPath,
+  injectHermesUserConfig,
+  upsertHermesEnvKey,
+} from "../hermes/user-config.js";
 import { injectDeepseekUserConfig, deepseekSettingsPath } from "../deepseek/user-config.js";
 import { grokConfigPath, injectGrokUserConfig } from "../grok/user-config.js";
 import { getDefaultModel } from "@aiandrelay/models";
@@ -69,7 +74,11 @@ export function persistProfiles(): EnablementProfile[] {
         }).filePath;
         const on = await fileContains(configPath, "aiand");
         return on
-          ? { connection: "on", provider: "ai&", auth: opencodeAuthJsonPath({ home: ctx.home, env: envFrom(ctx) }) }
+          ? {
+              connection: "on",
+              provider: "ai&",
+              auth: opencodeAuthJsonPath({ home: ctx.home, env: envFrom(ctx) }),
+            }
           : { connection: "off" };
       },
     },
@@ -77,7 +86,10 @@ export function persistProfiles(): EnablementProfile[] {
       id: HARNESS.PI,
       label: "Pi Code",
       family: "persist",
-      paths: (ctx) => [path.join(ctx.home, ".pi", "agent", "models.json"), piAuthJsonPath(ctx.home)],
+      paths: (ctx) => [
+        path.join(ctx.home, ".pi", "agent", "models.json"),
+        piAuthJsonPath(ctx.home),
+      ],
       async enable(ctx, apiKey) {
         const auth = await upsertPiAuth(ctx.home, apiKey);
         if (auth.status === "aborted") {
@@ -97,14 +109,19 @@ export function persistProfiles(): EnablementProfile[] {
       },
       async status(ctx) {
         const on = await fileContains(path.join(ctx.home, ".pi", "agent", "models.json"), "aiand");
-        return on ? { connection: "on", provider: "ai&", auth: piAuthJsonPath(ctx.home) } : { connection: "off" };
+        return on
+          ? { connection: "on", provider: "ai&", auth: piAuthJsonPath(ctx.home) }
+          : { connection: "off" };
       },
     },
     {
       id: HARNESS.PRIME,
       label: "Prime Agent",
       family: "persist",
-      paths: (ctx) => [path.join(ctx.home, ".prime", "agent", "models.json"), primeAuthJsonPath(ctx.home)],
+      paths: (ctx) => [
+        path.join(ctx.home, ".prime", "agent", "models.json"),
+        primeAuthJsonPath(ctx.home),
+      ],
       async enable(ctx, apiKey) {
         const auth = await upsertPrimeAuth(ctx.home, apiKey);
         if (auth.status === "aborted") {
@@ -123,7 +140,10 @@ export function persistProfiles(): EnablementProfile[] {
         };
       },
       async status(ctx) {
-        const on = await fileContains(path.join(ctx.home, ".prime", "agent", "models.json"), "aiand");
+        const on = await fileContains(
+          path.join(ctx.home, ".prime", "agent", "models.json"),
+          "aiand",
+        );
         return on
           ? { connection: "on", provider: "ai&", auth: primeAuthJsonPath(ctx.home) }
           : { connection: "off" };
@@ -175,7 +195,10 @@ export function persistProfiles(): EnablementProfile[] {
         };
       },
       async status(ctx) {
-        const on = await fileContains(hermesConfigPath({ home: ctx.home, env: envFrom(ctx) }), "aiand");
+        const on = await fileContains(
+          hermesConfigPath({ home: ctx.home, env: envFrom(ctx) }),
+          "aiand",
+        );
         return on ? { connection: "on", provider: "ai&" } : { connection: "off" };
       },
     },
@@ -222,7 +245,10 @@ export function persistProfiles(): EnablementProfile[] {
         };
       },
       async status(ctx) {
-        const on = await fileContains(grokConfigPath({ home: ctx.home, env: envFrom(ctx) }), "aiand");
+        const on = await fileContains(
+          grokConfigPath({ home: ctx.home, env: envFrom(ctx) }),
+          "aiand",
+        );
         return on ? { connection: "on", provider: "ai&" } : { connection: "off" };
       },
     },
