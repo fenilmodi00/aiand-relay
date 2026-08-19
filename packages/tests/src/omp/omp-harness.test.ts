@@ -99,7 +99,7 @@ describe("omp harness identity", () => {
 describe("omp harness invocation", () => {
   test("forwards omp passthrough after -- separator", () => {
     const parsed = parseArgs(["omp", "--", "--mode", "json", "--print", "Reply hi"]);
-    const invocation = resolveHarnessInvocation(parsed.positional, parsed.flags);
+    const invocation = resolveHarnessInvocation(parsed.positional, parsed.flags, parsed.harnessVerb);
 
     expect(invocation.command).toBe("omp");
     expect(invocation.flags.passthrough).toEqual(["--mode", "json", "--print", "Reply hi"]);

@@ -1,7 +1,11 @@
+import { backupPaths } from "../enablement/snapshot.js";
+import { getEnablementProfile } from "../enablement/engine.js";
+import { relayHomeFor } from "../enablement/relay-home.js";
+import { printBanner } from "../cli/banner.js";
 import os from "node:os";
 import path from "node:path";
 import * as clack from "@clack/prompts";
-import { ALL_HARNESSES, HARNESS, HARNESS_BIN, HARNESS_LABEL, type HarnessId } from "../harness.js";
+import { ALL_HARNESSES, HARNESS, HARNESS_LABEL, type HarnessId } from "../harness.js";
 import { isHarnessImplemented } from "../harness-registry.js";
 import { detectInstalledHarnesses } from "../detect.js";
 import { readGlobalConfig, setGlobalApiKey, resolveStoredApiKey } from "../global-config.js";
@@ -47,10 +51,13 @@ import {
 } from "../prime/user-config.js";
 
 export function printHelp() {
-  console.log(`aiandrelay v${VERSION} - ai& for coding CLIs
-
+  printBanner({ version: VERSION });
+  console.log(`
 Usage:
-  aiandrelay configure
+  aiandrelay configure         save key; turn on detected OpenAI-compatible tools
+  aiandrelay uninstall         off every harness, then remove the CLI
+  aiandrelay status            key + per-harness routing
+  aiandrelay model list        browse ai& coding models
   aiandrelay update            update to the latest release
   aiandrelay whoami
   aiandrelay usage [--last 7d] tracked local spend by model and tool
@@ -59,29 +66,14 @@ Usage:
   aiandrelay daemon status     show auto-start service status
   aiandrelay daemon stop       stop the running daemon
   aiandrelay chatgpt [--model <model>] [--restore]  (alpha)
-  aiandrelay codex [...]       (alias: acodex)
-  aiandrelay claude [...]      (alias: aclaude)
-  aiandrelay pi [...]          (alias: api)
-  aiandrelay opencode [...]    (alias: aopencode)
-  aiandrelay prime [...]       (alias: aprime)
-  aiandrelay hermes [...]      (alias: ahermes)
-  aiandrelay deepseek [...]    (alpha, alias: adeepseek)
-  aiandrelay grok [...]        (alias: agrok; Grok's UI on ai& models)
-  aiandrelay omp [...]         (alias: aomp)
+  aiandrelay <harness> [on|off|status|help|run ...]
 
-Extra args after codex/claude/pi/opencode/prime/hermes/deepseek/grok/omp are passed through.
-ChatGPT App support is alpha; run \`aiandrelay chatgpt --restore\` (alias: codex-app) to restore the previous desktop config.
-
-Codex flags:
-  --no-mcp   Skip your ~/.codex/config.toml MCP servers for a fast startup
-             (maps to codex --ignore-user-config; also skips other codex config).
-
-Your last-used model is remembered per tool: change it with /model (or --model
-before the harness) and the next launch reuses it.
+Harnesses: claude, codex, opencode, pi, prime, hermes, deepseek, grok, omp
+Bare \`aiandrelay claude\` writes native config (on). Use \`run\` to launch the wrapper.
+Claude/Codex: \`on\` points at the local daemon. Other tools: \`on\` writes an ai& provider into that tool's own files.
+Keys stay in ~/.aiandrelay/config.json and each tool's files (not the OS keychain — harnesses need a baked key).
 
 Docs: https://aiand-relay-6eb9031f.onbld.com/llms.txt
-  LLM-readable documentation - if you are an AI agent asked to install, configure,
-  or use aiandrelay (including headless use), read that file first.
 `);
 }
 
@@ -138,6 +130,7 @@ export async function runConfigure(
     );
   } else {
     try {
+      await snapshotPersistHarness(HARNESS.OPENCODE, home, env);
       const authResult = await upsertOpencodeAiandAuth({ home, env, apiKey });
       if (authResult.status === "aborted") {
         clack.log.error(
@@ -200,6 +193,7 @@ export async function runConfigure(
     );
   } else {
     try {
+      await snapshotPersistHarness(HARNESS.PI, home, env);
       const authResult = await upsertPiAuth(home, apiKey);
       if (authResult.status === "aborted") {
         clack.log.error(
@@ -230,6 +224,7 @@ export async function runConfigure(
     );
   } else {
     try {
+      await snapshotPersistHarness(HARNESS.OMP, home, env);
       const configResult = await injectOmpUserConfig(home);
       logPiFamilyConfigResult("omp", configResult);
       if (configResult.status !== "aborted") {
@@ -248,6 +243,7 @@ export async function runConfigure(
     );
   } else {
     try {
+      await snapshotPersistHarness(HARNESS.PRIME, home, env);
       const authResult = await upsertPrimeAuth(home, apiKey);
       if (authResult.status === "aborted") {
         clack.log.error(
@@ -281,6 +277,7 @@ export async function runConfigure(
       `Hermes Agent was not found (no hermes on PATH and no ${path.join(home, ".hermes")}). Skipping Hermes native config inject.`,
     );
   } else {
+    await snapshotPersistHarness(HARNESS.HERMES, home, env);
     let hermesEnvWritten = false;
     try {
       const envResult = await upsertHermesEnvKey({ home, env, apiKey });
@@ -311,6 +308,7 @@ export async function runConfigure(
     );
   } else {
     try {
+      await snapshotPersistHarness(HARNESS.GROK, home, env);
       const configResult = await injectGrokUserConfig({ home, env });
       if (configResult.status === "aborted") {
         clack.log.error(`Grok Build: left ${configResult.path} unchanged (invalid TOML).`);
@@ -335,6 +333,7 @@ export async function runConfigure(
     );
   } else {
     try {
+      await snapshotPersistHarness(HARNESS.DEEPSEEK, home, env);
       const configResult = await injectDeepseekUserConfig({ home, env });
       logDeepseekConfigResult("DeepSeek Harness", configResult);
     } catch (err) {
@@ -351,7 +350,7 @@ export async function runConfigure(
   } else {
     const decision = decideClaudeNativeConfig(home);
     clack.log.info(
-      `Claude Code: left ${decision.path} unchanged (${formatClaudeDecision(decision.reason)}). Continue using \`aiandrelay claude\` for ai& access.`,
+      `Claude Code: left ${decision.path} unchanged (${formatClaudeDecision(decision.reason)}). Run \`aiandrelay claude on\` to point stock claude at the local daemon.`,
     );
   }
 
@@ -364,9 +363,13 @@ export async function runConfigure(
         .map((h) => HARNESS_LABEL[h])
         .join(
           ", ",
-        )}. Run \`aiandrelay <harness>\` to start. \`aopencode\` still injects session settings and writes nothing on launch.`,
+        )}. Run \`aiandrelay <harness> on\` to write native config, then use the stock binary. \`aiandrelay <harness> run\` still launches the wrapper.`,
     );
   }
+
+  clack.log.info(
+    "OpenAI-compatible tools that were found are on (add-only inject + snapshot). Claude Code and Codex: run `aiandrelay claude on` / `aiandrelay codex on`.",
+  );
 
   if (notImplemented.length > 0) {
     clack.log.info(
@@ -384,9 +387,9 @@ function configureSupportLabel(harness: HarnessId): string {
   }
   switch (harness) {
     case HARNESS.CLAUDE:
-      return " (wrapper support; native inject deferred)";
+      return " (run aiandrelay claude on for native daemon routing)";
     case HARNESS.CODEX:
-      return " (wrapper support; configure keeps generic defaults only)";
+      return " (run aiandrelay codex on for native daemon routing)";
     case HARNESS.OPENCODE:
     case HARNESS.PI:
     case HARNESS.PRIME:
@@ -394,7 +397,7 @@ function configureSupportLabel(harness: HarnessId): string {
     case HARNESS.DEEPSEEK:
     case HARNESS.GROK:
     case HARNESS.OMP:
-      return " (configure can inject native settings)";
+      return " (configure turns this on; add-only inject)";
   }
 }
 
@@ -581,4 +584,13 @@ function formatClaudeDecision(
     return "native settings would redirect all Claude traffic through a proxy";
   }
   return "native custom providers are not supported safely";
+}
+
+async function snapshotPersistHarness(
+  id: HarnessId,
+  home: string,
+  env: NodeJS.ProcessEnv,
+): Promise<void> {
+  const profile = getEnablementProfile(id);
+  await backupPaths(relayHomeFor(home), id, profile.paths({ home, env }));
 }

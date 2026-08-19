@@ -12,6 +12,7 @@ import { writeAnthropicError, isAiandApiError } from "../claude/aiand-call.js";
 import { handleCodexProxyRequest, writeOpenAIError } from "../codex/proxy.js";
 import { handleChatPassthrough, isPassthroughPath } from "./chat-passthrough.js";
 import { readAppRegistration } from "./app-registration.js";
+import { findPersistentRegistrationByToken } from "../enablement/persistent-session.js";
 import { aiandrelayHome } from "../paths.js";
 import { initModelCatalog } from "../model-catalog-init.js";
 import {
@@ -482,11 +483,17 @@ async function handleDaemonRequest(
  * app 401s until the user re-runs `aiandrelay codex-app`.
  */
 async function restoreAppSession(token: string): Promise<SessionState | undefined> {
-  const registration = await readAppRegistration();
-  if (registration === undefined || registration.token !== token) {
+  const app = await readAppRegistration();
+  if (app !== undefined && app.token === token) {
+    const state = buildSession(app);
+    activeSessions.register(state);
+    return state;
+  }
+  const persistent = await findPersistentRegistrationByToken(token);
+  if (persistent === undefined) {
     return undefined;
   }
-  const state = buildSession(registration);
+  const state = buildSession(persistent);
   activeSessions.register(state);
   return state;
 }

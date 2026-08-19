@@ -120,7 +120,7 @@ async function runInteractiveLauncher(): Promise<void> {
     return;
   }
 
-  await dispatchHarnessCommand(choice, undefined, {});
+  await dispatchHarnessCommand(choice, "run", {});
 }
 
 /**
@@ -157,6 +157,15 @@ function launcherOptions(): Array<{ value: string; label: string; hint: string }
 
 function isInteractive(): boolean {
   return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
+async function initCatalogIfPossible(): Promise<void> {
+  try {
+    const { initModelCatalog } = await import("../lib/model-catalog-init.js");
+    await initModelCatalog({ home: os.homedir() });
+  } catch {
+    // Bundled snapshot is enough for `model list`.
+  }
 }
 
 async function main() {
@@ -233,8 +242,51 @@ async function main() {
     return;
   }
 
+  if (command === "status") {
+    const { printGlobalStatus } = await import("../lib/enablement/engine.js");
+    await printGlobalStatus({ home: os.homedir(), ...parsed.flags });
+    return;
+  }
+
+  if (command === "model") {
+    const sub = rawVerb ?? parsed.positional[1];
+    if (sub !== "list") {
+      throw new Error('Unknown "model" command. Expected: list.');
+    }
+    const { getSelectableModels } = await import("@aiandrelay/models");
+    await initCatalogIfPossible();
+    const search = parsed.flags.search?.trim().toLowerCase();
+    const models = getSelectableModels().filter((model) => {
+      if (!search) {
+        return true;
+      }
+      return `${model.id} ${model.name}`.toLowerCase().includes(search);
+    });
+    for (const model of models) {
+      console.log(`${model.id}\t${model.name}`);
+    }
+    return;
+  }
+
   if (command === "configure") {
     await runConfigure();
+    return;
+  }
+
+  if (command === "uninstall") {
+    const { runUninstall } = await import("../lib/enablement/uninstall.js");
+    const result = await runUninstall({ home: os.homedir() });
+    if (result.offErrors.length > 0 || result.removalFailures.length > 0) {
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  // Hidden: install.sh finish screen (`aiandrelay banner install`).
+  if (command === "banner") {
+    const { printBanner } = await import("../lib/cli/banner.js");
+    const context = rawVerb === "install" ? "install" : undefined;
+    printBanner({ version: VERSION, ...(context ? { context } : {}) });
     return;
   }
 
@@ -317,16 +369,21 @@ async function main() {
     return;
   }
 
-  const invocation = resolveHarnessInvocation(parsed.positional, parsed.flags);
+  const invocation = resolveHarnessInvocation(
+    parsed.positional,
+    parsed.flags,
+    parsed.harnessVerb,
+  );
 
   if (isHarnessCommand(invocation.command)) {
-    if (!(await ensureConfiguredForInteractiveLaunch(parsed.flags.apiKey))) {
+    const needsKey = invocation.verb === "on" || invocation.verb === "run";
+    if (needsKey && !(await ensureConfiguredForInteractiveLaunch(parsed.flags.apiKey))) {
       throw new Error("No ai& API key found. Run `aiandrelay configure` or set AIAND_API_KEY.");
     }
     void sendTelemetryEvent({ event: "cli_started", agent: invocation.command });
   }
 
-  await dispatchHarnessCommand(invocation.command, undefined, invocation.flags);
+  await dispatchHarnessCommand(invocation.command, invocation.verb, invocation.flags);
 }
 
 main().catch((err: unknown) => {

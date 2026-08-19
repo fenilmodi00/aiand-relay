@@ -8,8 +8,18 @@ interface, depth, seam, adapter, leverage, locality) comes from the
 
 ## Agents (the harness families)
 
-A **harness** is an ai& Relay adapter for one coding-agent CLI. There are two
-architecturally distinct families (recorded as `ProxiedHarness` and
+A **harness** is an ai& Relay adapter for one coding-agent CLI.
+
+**Enablement** (`packages/cli/src/lib/enablement/`) is the module that implements `on` / `off` / `status`. **Snapshot** stores pre-connect file bytes under `~/.aiandrelay/snapshots/<harness>/`. Two adapters sit at that seam:
+
+- **persist-config** - OpenCode, Pi, Prime, Hermes, DeepSeek, Grok, omp. `on` / `configure` writes the tool's own config at ai&.
+- **session-proxy** (proxied) - Claude, Codex. `on` writes native config at the local **daemon** loopback and persists a daemon **session** registration so stock binaries survive daemon restart. `configure` does not turn these on.
+
+`aiandrelay uninstall` runs `off` for every harness that has a snapshot, then removes wrappers and `~/.aiandrelay`.
+
+`run` still launches wrappers via `Harness.run` (`runProxiedSession` / spawn).
+
+There are two architecturally distinct families (recorded as `ProxiedHarness` and
 `SpawnedHarness` in `harness-types.ts`):
 
 - **Proxied harness** - Claude, Codex. `run` spawns a daemon-backed proxy: it
@@ -85,5 +95,5 @@ home directory + process-liveness check. Replaces 4+3 duplicated copies.
 ## Sources of truth
 
 - Architecture vocabulary: `codebase-design` skill glossary.
-- ADRs: none yet (create `docs/adr/` when a decision is load-bearing).
+- ADRs: `docs/adr/` (ADR-0001: Claude/Codex persist to the daemon, not api.aiand.com).
 - This file is the domain model; update it as terms crystallize.

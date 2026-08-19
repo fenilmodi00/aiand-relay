@@ -3,11 +3,18 @@ import { ALL_HARNESSES, HARNESS_LABEL, type HarnessId } from "../harness.js";
 import { loadHarness, isHarnessImplemented } from "../harness-registry.js";
 import { detectInstalledHarness, missingHarnessMessage } from "../detect.js";
 import { initModelCatalog } from "../model-catalog-init.js";
-import type { HarnessContext, HarnessResult } from "../harness-types.js";
+import type { HarnessContext } from "../harness-types.js";
+import type { HarnessVerb } from "../harness-verbs.js";
+import {
+  engineOff,
+  engineOn,
+  engineStatus,
+  printHarnessHelp,
+} from "../enablement/engine.js";
 
 export async function dispatchHarnessCommand(
   harnessName: string | undefined,
-  verb: string | undefined,
+  verb: HarnessVerb | undefined,
   flags: Partial<HarnessContext>,
 ): Promise<void> {
   if (!isKnownHarness(harnessName)) {
@@ -20,23 +27,41 @@ export async function dispatchHarnessCommand(
       `${HARNESS_LABEL[harnessName]} support isn't built yet (coming in a later phase - it needs a local translation proxy).`,
     );
   }
-  const harnessModule = await loadHarness(harnessName);
-  if (verb !== undefined && verb !== "run") {
-    throw new Error(`Unknown command "${harnessName} ${verb}". Expected: run.`);
+  const action = verb ?? "on";
+  const ctx: HarnessContext = { home: os.homedir(), ...flags };
+
+  if (action === "help") {
+    printHarnessHelp(harnessName);
+    return;
   }
+  if (action === "status") {
+    await engineStatus(harnessName, ctx);
+    return;
+  }
+  if (action === "off") {
+    await engineOff(harnessName, ctx);
+    return;
+  }
+  if (action === "on") {
+    if (!detectInstalledHarness(harnessName).installed) {
+      const { ensureHarnessInstalled } = await import("../install-harness.js");
+      if (!(await ensureHarnessInstalled(harnessName))) {
+        throw new Error(missingHarnessMessage(harnessName));
+      }
+    }
+    await initModelCatalog({ home: ctx.home });
+    await engineOn(harnessName, ctx);
+    return;
+  }
+
   if (!detectInstalledHarness(harnessName).installed) {
-    // Offer to run the vendor install command rather than only printing it.
-    // Declines (and non-interactive runs) fall through to the usual message.
     const { ensureHarnessInstalled } = await import("../install-harness.js");
     if (!(await ensureHarnessInstalled(harnessName))) {
       throw new Error(missingHarnessMessage(harnessName));
     }
   }
 
-  const ctx = { home: os.homedir(), ...flags };
-  // Refresh the live ai& catalog before spawning so model resolution, the
-  // Claude model-menu env, and the OpenCode/Pi generated configs reflect what
-  // ai& serves. Best-effort; falls back to the bundled snapshot.
+  const harnessModule = await loadHarness(harnessName);
   await initModelCatalog({ home: ctx.home });
   const result = await harnessModule.run(ctx);
   renderResult(result, flags);
@@ -46,7 +71,10 @@ function isKnownHarness(value: string | undefined): value is HarnessId {
   return value !== undefined && (ALL_HARNESSES as readonly string[]).includes(value);
 }
 
-function renderResult(result: HarnessResult, flags: Partial<HarnessContext>): void {
+function renderResult(
+  result: { message?: string; payload?: Record<string, unknown> },
+  flags: Partial<HarnessContext>,
+): void {
   if (!result) {
     return;
   }

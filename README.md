@@ -9,27 +9,22 @@ curl -fsSL https://aiand-relay-6eb9031f.onbld.com/install.sh | sh
 Then:
 
 ```bash
-aiandrelay claude     # Claude Code on ai& models (alias: aclaude)
+aiandrelay claude on     # write Claude settings → local daemon (then use stock `claude`)
 ```
 
 ---
 
 ## What it does
 
-ai& serves open models over an OpenAI-compatible API. It does **not** speak the Anthropic Messages API (Claude Code) or the OpenAI Responses API (Codex). ai& Relay runs a small local daemon that translates those wire formats to ai& `/chat/completions` on the fly, so your agent believes it is talking to its native backend while every token is served by ai&.
+ai& serves open models over an OpenAI-compatible API. It does **not** speak the Anthropic Messages API (Claude Code) or the OpenAI Responses API (Codex). ai& Relay writes each tool's own config so you do not memorize endpoint URLs, and runs a small local daemon that translates Claude/Codex wire formats to ai& `/chat/completions`.
 
-- **Proxied harnesses** (Claude Code, Codex): a local daemon translates each request/response, tracks cost, retries transient failures, trims context to fit, and refuses native web_search server tools with a clear error.
-- **Spawned harnesses** (OpenCode, Pi, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, omp): launched with a generated provider config pointed at ai&, no proxy needed (they already speak ai&'s OpenAI-compatible format).
+- **`on` / `off` / `status`:** `on` snapshots your existing files, then writes provider config. `off` restores those bytes. There is no browser login — paste an ai& API key (`configure`, `--api-key`, or `AIAND_API_KEY`).
+- **Persist-config harnesses** (OpenCode, Pi, Prime, Hermes, DeepSeek, Grok, omp): `on` (and `configure`, when the tool is detected) points the stock binary at `https://api.aiand.com/v1`. No daemon.
+- **Proxied harnesses** (Claude Code, Codex): `on` points stock `claude` / `codex` at `127.0.0.1` (the daemon). Never at api.aiand.com. See `docs/adr/0001-claude-codex-persist-daemon.md`. `configure` does not turn these on.
+- **`run`:** optional wrappers (`aclaude`, `aiandrelay claude run`) for a one-off session. Extra args after a harness name still imply `run` so `aclaude -p` keeps working.
+- **`uninstall`:** runs `off` on every snapshotted harness, then removes the CLI and wrappers. Leaving is as easy as joining.
 
-Session launches (`aopencode`, `aclaude`, and the other harness commands) still inject a base URL and API key per process and do not rewrite the agent's config on launch.
-
-`aiandrelay configure` now has three outcomes depending on the harness:
-
-- **Native config injected** for plain OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp when those tools are present.
-- **Wrapper-first / deferred** for Claude Code: configure explicitly leaves `~/.claude/settings.json` unchanged because a persisted Claude path would redirect all Claude traffic through a proxy.
-- **Wrapper-only with generic defaults left alone** for Codex CLI: launch `acodex` / `aiandrelay codex` when you want ai& routing.
-
-For the native-injected harnesses, configure keeps the add-only rule: it does not disable other providers and does not set the default model.
+Keys stay in `~/.aiandrelay/config.json` and each tool's own files. The OS keychain is not used — harness configs need a baked key.
 
 ## Install
 
@@ -45,7 +40,7 @@ First run walks you through configuration (or run it directly):
 aiandrelay configure
 ```
 
-You'll be asked for an ai& API key (<https://docs.aiand.com/>). It is stored in `~/.aiandrelay/` and never leaves your machine. You can also set `AIAND_API_KEY` in the environment instead.
+The installer finishes with a colored **ai& Relay** banner in the terminal. You'll be asked for an ai& API key (<https://docs.aiand.com/>). It is stored in `~/.aiandrelay/config.json` (mode `0600`) and never leaves your machine. You can also set `AIAND_API_KEY` in the environment instead.
 
 If the underlying agent CLI (Claude Code, Codex, etc.) isn't installed, the relay offers to run its official install command (with your consent) or prints it and exits.
 
@@ -57,10 +52,32 @@ Pick a tool interactively:
 aiandrelay
 ```
 
-Or launch one directly (each has a short alias):
+Global commands:
 
 ```bash
-aiandrelay claude       # alias: aclaude
+aiandrelay help
+aiandrelay configure        # save key; turn on detected OpenAI-compatible tools
+aiandrelay status           # key stored? + per-harness on/off
+aiandrelay model list --search glm
+aiandrelay uninstall        # off every harness, then remove the CLI
+```
+
+Per harness (`claude`, `codex`, `opencode`, `pi`, `prime`, `hermes`, `deepseek`, `grok`, `omp`):
+
+```bash
+aiandrelay claude           # same as on
+aiandrelay claude on        # snapshot, then persist native routing
+aiandrelay claude off       # restore snapshot
+aiandrelay claude status
+aiandrelay claude help
+aiandrelay claude run       # optional wrapper (alias: aclaude with extra args)
+aiandrelay opencode on      # stock `opencode` talks to ai& after this
+```
+
+Or launch a wrapper directly (each has a short alias). Extra args imply `run`:
+
+```bash
+aiandrelay claude       # alias: aclaude  (no extra args = on; extra args = run)
 aiandrelay codex        # alias: acodex
 aiandrelay opencode     # alias: aopencode
 aiandrelay pi           # alias: api
@@ -73,6 +90,7 @@ aiandrelay chatgpt      # alpha: ChatGPT Desktop session with restore (alias: co
 aiandrelay usage        # local spend report (optional: --last 7d)
 aiandrelay update       # update to the latest release
 aiandrelay daemon install   # auto-start daemon at login (macOS/Linux)
+aiandrelay uninstall        # restore harness files and remove aiandrelay
 ```
 
 Any extra arguments are passed straight through to the underlying agent:
@@ -97,7 +115,9 @@ Use `aopencode` (`aiandrelay opencode`) when you want the locked-down ai&-only s
 - `left unchanged (...)` when an existing user file has an unsupported shape or invalid syntax
 - explicit skip/defer messaging for Claude Code and for tools that are not installed
 
-That means reruns are safe: configure either adds the ai& provider state it knows how to manage, or leaves the user's file untouched and tells you why.
+Configure snapshots those files first (so `off` / `uninstall` can restore them), then injects. Reruns are safe: configure either adds the ai& provider state it knows how to manage, or leaves the user's file untouched and tells you why.
+
+Claude Code and Codex are listed in the detection summary but are **not** turned on until `aiandrelay claude on` / `aiandrelay codex on`.
 
 ### Plain native harnesses after `configure`
 
@@ -111,7 +131,16 @@ For the native OpenAI-compatible harnesses, `aiandrelay configure` now writes on
 - Grok Build: `~/.grok/config.toml` (or `$GROK_HOME/config.toml`)
 - omp: `~/.omp/agent/models.yml`
 
-The launcher commands (`api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, `aomp`) still build a per-run ai& session and may use additional relay-owned runtime state. `configure` is the persistent native integration step; the harness commands themselves still do not rewrite those user configs on launch.
+The launcher commands (`api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, `aomp`) still build a per-run ai& session. After `on` or `configure`, use the stock binary; `run` is optional.
+
+### Leave
+
+```bash
+aiandrelay opencode off     # one tool
+aiandrelay uninstall        # every snapshotted tool, then delete ~/.aiandrelay and PATH wrappers
+```
+
+`uninstall` only deletes wrappers it owns (scripts/links that point at `aiandrelay.js`). An unrelated `api` on your PATH is left alone. Restart running IDEs/CLIs after `off` or `uninstall` so they reread config.
 
 ## Models
 

@@ -12,6 +12,8 @@ export type HarnessContext = {
   restore?: boolean;
   search?: string;
   slot?: string;
+  /** Isolated env for configure/tests (XDG, HERMES_HOME, …). */
+  env?: NodeJS.ProcessEnv;
 };
 
 export type HarnessResult = {
