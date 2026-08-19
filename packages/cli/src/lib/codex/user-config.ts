@@ -7,6 +7,10 @@ const FIRST_RUN_CODEX_DEFAULTS = {
   approvals_reviewer: "auto_review",
 } as const;
 
+export function codexConfigPath(home: string): string {
+  return path.join(home, ".codex", "config.toml");
+}
+
 export async function ensureCodexGenericUserDefaults(home: string): Promise<void> {
   const configPath = codexConfigPath(home);
   const existing = await readTextIfExists(configPath);
@@ -29,10 +33,6 @@ export function applyCodexGenericUserDefaults(rawConfig: string): string {
 
 export function codexArgsIgnoreUserConfig(args: string[]): boolean {
   return args.includes("--ignore-user-config");
-}
-
-function codexConfigPath(home: string): string {
-  return path.join(home, ".codex", "config.toml");
 }
 
 async function readTextIfExists(file: string): Promise<string | undefined> {

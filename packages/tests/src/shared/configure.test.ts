@@ -568,17 +568,15 @@ describe("aiandrelay configure", () => {
     expect(existsSync(claudeSettingsPath(home))).toBe(false);
 
     const text = info.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(text).toContain("Codex: not found (run aiandrelay codex on for native daemon routing)");
+    expect(text).toContain("OpenCode: not found (configure turns this on; add-only inject)");
+    expect(text).toContain("Pi Code: not found (configure turns this on; add-only inject)");
+    expect(text).toContain("omp: not found (configure turns this on; add-only inject)");
+    expect(text).toContain("Prime Agent: not found (configure turns this on; add-only inject)");
+    expect(text).toContain("Hermes Agent: not found (configure turns this on; add-only inject)");
+    expect(text).toContain("Grok Build: not found (configure turns this on; add-only inject)");
     expect(text).toContain(
-      "Codex: not found (wrapper support; configure keeps generic defaults only)",
-    );
-    expect(text).toContain("OpenCode: not found (configure can inject native settings)");
-    expect(text).toContain("Pi Code: not found (configure can inject native settings)");
-    expect(text).toContain("omp: not found (configure can inject native settings)");
-    expect(text).toContain("Prime Agent: not found (configure can inject native settings)");
-    expect(text).toContain("Hermes Agent: not found (configure can inject native settings)");
-    expect(text).toContain("Grok Build: not found (configure can inject native settings)");
-    expect(text).toContain(
-      "DeepSeek Harness (alpha): not found (configure can inject native settings)",
+      "DeepSeek Harness (alpha): not found (configure turns this on; add-only inject)",
     );
     expect(text).toContain(
       "Plain opencode can use ai& models. aopencode is unchanged (session lockdown; writes nothing on launch).",
@@ -588,7 +586,7 @@ describe("aiandrelay configure", () => {
       "Grok Build: ai& entries reference AIAND_API_KEY via env_key. Existing user defaults were left unchanged.",
     );
     expect(text).toContain(
-      `Claude Code: left ${claudeSettingsPath(home)} unchanged (native custom providers are not supported safely). Continue using \`aiandrelay claude\` for ai& access.`,
+      `Claude Code: left ${claudeSettingsPath(home)} unchanged (native custom providers are not supported safely). Run \`aiandrelay claude on\` to point stock claude at the local daemon.`,
     );
   });
 
@@ -609,7 +607,7 @@ describe("aiandrelay configure", () => {
     expect(ok).toBe(true);
     expect(existsSync(claudeSettingsPath(home))).toBe(false);
     expect(info.mock.calls.map((call) => String(call[0])).join("\n")).toContain(
-      `Claude Code: left ${claudeSettingsPath(home)} unchanged (native custom providers are not supported safely). Continue using \`aiandrelay claude\` for ai& access.`,
+      `Claude Code: left ${claudeSettingsPath(home)} unchanged (native custom providers are not supported safely). Run \`aiandrelay claude on\` to point stock claude at the local daemon.`,
     );
   });
 });

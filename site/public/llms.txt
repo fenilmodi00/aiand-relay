@@ -51,18 +51,19 @@ The API key is required to actually route traffic; the installer lets you skip i
 
 Current configure outcomes:
 
-- Native config injected when the tool is present: plain OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp.
-- Wrapper-first defer: Claude Code. Configure leaves `~/.claude/settings.json` unchanged and tells you to keep using `aiandrelay claude`.
-- Wrapper-only: Codex CLI. Configure keeps generic Codex defaults alone; ai& routing happens through `aiandrelay codex` / `acodex`.
+- Native config injected when the tool is present: plain OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp. Configure snapshots those files first (same as `on`).
+- Wrapper-first defer: Claude Code and Codex CLI. Configure leaves their native files unchanged until `aiandrelay claude on` / `aiandrelay codex on` (daemon loopback, not api.aiand.com).
 
-Configure is add-only for the native-injected harnesses: it adds or refreshes the ai& provider state it owns, does not disable other providers, and does not force the user's default model.
+Configure is add-only for the native-injected harnesses: it adds or refreshes the ai& provider state it owns, does not disable other providers, and does not force the user's default model. Keys stay in `~/.aiandrelay/config.json` and each tool's files (not the OS keychain).
 
 ## Commands
 
 Running `aiandrelay` with no arguments opens an interactive launcher (requires a TTY) that lets you pick a tool. Run a tool directly with a subcommand:
 
 ```
-aiandrelay configure                      # set API keys
+aiandrelay configure                      # save key; on detected OpenAI-compatible tools
+aiandrelay uninstall                      # off every harness, then remove the CLI
+aiandrelay status                         # key + per-harness routing
 aiandrelay update                         # update to the latest release
 aiandrelay whoami                         # print your anonymous install id
 aiandrelay usage [--last 7d]              # local spend by model and tool
@@ -78,6 +79,8 @@ aiandrelay hermes [...]       # alias: ahermes  (Hermes Agent, Nous Research)
 aiandrelay deepseek [...]     # alias: adeepseek (DeepSeek Harness, alpha)
 aiandrelay grok [...]         # alias: agrok    (Grok Build UI on ai& models)
 aiandrelay omp [...]          # alias: aomp     (omp / Oh My Pi)
+aiandrelay <harness> [on|off|status|help|run ...]
+                              # bare name = on; extra args without a verb = run
 
 aiandrelay chatgpt [--model <model>] [--restore]   # alpha: ChatGPT Desktop (alias: codex-app)
 
@@ -87,7 +90,7 @@ aiandrelay daemon status                 # show auto-start service status
 aiandrelay daemon stop                   # stop the running daemon
 ```
 
-Any arguments after the harness name are passed straight through to the underlying agent CLI. For example, `acodex exec "fix the typo"` runs `codex exec` with aiandrelay routing.
+Bare `aiandrelay claude` is `on`. Extra args without a verb still imply `run` (so `aclaude -p` launches).
 
 Recognized aiandrelay flags (parsed before the passthrough):
 
@@ -234,9 +237,9 @@ You can check the installed version with `aiandrelay --version` and compare it a
 
 There are two harness families behind the tools:
 
-- **Proxied harnesses - Claude Code, Codex CLI.** `aclaude` and `acodex` spawn a shared local daemon and route the agent's `/v1/*` traffic through it. The daemon translates the agent's native wire format (Anthropic Messages for Claude, OpenAI Responses for Codex) to ai&'s chat-completions API and back. Per run: it resolves the model, ensures the daemon, registers a session with your token, prints a banner, spawns the agent pointed at the local proxy, tracks cost, and deregisters on exit. Claude stays wrapper-first: configure intentionally does not persist proxy redirection in `~/.claude/settings.json`.
+- **Proxied harnesses - Claude Code, Codex CLI.** `aiandrelay claude on` writes native config at the local daemon (never api.aiand.com). `aclaude` / `run` still spawn a wrapper session. Configure does not turn Claude/Codex on.
 
-- **OpenAI-compatible harnesses - OpenCode, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, omp.** `aopencode`, `api`, `aprime`, `ahermes`, `adeepseek`, `agrok`, and `aomp` still launch ai&-managed sessions without rewriting those tools on launch. Separately, `aiandrelay configure` can persist add-only native provider/config state for the plain harness binaries in each tool's own user config. This is why plain `opencode`, `pi`, `prime-agent`, `hermes`, `dsh`, `grok`, and `omp` can gain ai& config support without changing the launcher semantics.
+- **OpenAI-compatible harnesses.** `configure` and `aiandrelay <harness> on` persist add-only native provider state. `run` still launches wrappers.
 
 The daemon is one persistent local process shared by all proxied sessions. If you ever need to stop it manually:
 
@@ -253,7 +256,7 @@ aiandrelay daemon stop
 - **Native web search fails** - expected. aiandrelay does not emulate Anthropic/Codex `web_search` server tools. Use a custom function tool if you need search.
 - **Headless run hangs and produces no edits** - you forgot `< /dev/null`. Close stdin and relaunch; see the Headless usage section.
 - **Cost seems high for a small change** - the agent over-documented. Scope the task tighter and add a "don't over-explain" instruction.
-- **Want your normal config back** - if you only used wrapper launches, stop using the wrappers. For harnesses configured through `aiandrelay configure`, remove the added ai& provider/auth entries from that tool's own config if you no longer want plain native usage. Claude Code has no persisted aiandrelay config to undo. For ChatGPT Desktop, run `aiandrelay chatgpt --restore`.
+- **Want your normal config back** - `aiandrelay <harness> off` restores the snapshot. `aiandrelay uninstall` offs every harness then removes the CLI. For ChatGPT Desktop, run `aiandrelay chatgpt --restore`.
 
 ## Links
 
