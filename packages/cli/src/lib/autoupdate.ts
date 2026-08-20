@@ -14,6 +14,7 @@ import { access, writeFile, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { VERSION } from "./version.js";
+import { HARNESS_WRAPPER_COMMANDS } from "./cli/wrappers.js";
 
 /** Single origin for the landing page, manifest, and downloadable bundle. */
 const UPDATE_ORIGIN =
@@ -170,27 +171,13 @@ async function downloadTo(url: string, dest: string): Promise<void> {
 }
 
 /**
- * Wrapper commands the installer creates. Auto-update only replaces the bundle,
- * so a release that ADDS a wrapper (e.g. `aprime` for the Prime Agent harness)
- * would never reach existing installs - they'd have to re-run install.sh. Back
- * these in after an update so new harnesses become usable immediately.
- */
-const WRAPPER_COMMANDS: ReadonlyArray<{ name: string; harness: string }> = [
-  { name: "aclaude", harness: "claude" },
-  { name: "acodex", harness: "codex" },
-  { name: "aopencode", harness: "opencode" },
-  { name: "api", harness: "pi" },
-  { name: "aprime", harness: "prime" },
-  { name: "ahermes", harness: "hermes" },
-  { name: "aomp", harness: "omp" },
-  { name: "adeepseek", harness: "deepseek" },
-  { name: "agrok", harness: "grok" },
-];
-
-/**
  * Create any missing wrapper scripts next to the installed bundle. Never
  * overwrites an existing file - only fills gaps - so a user's customized
  * wrapper is left alone. Best-effort: failures are swallowed.
+ *
+ * Auto-update only replaces the bundle, so a release that ADDS a wrapper
+ * (e.g. `aprime`) would never reach existing installs. Back these in after
+ * an update so new harnesses become usable immediately.
  */
 export async function backfillWrapperCommands(): Promise<string[]> {
   const created: string[] = [];
@@ -199,7 +186,7 @@ export async function backfillWrapperCommands(): Promise<string[]> {
   }
   const binDir = path.dirname(installedBundlePath());
   const bundle = installedBundlePath();
-  for (const { name, harness } of WRAPPER_COMMANDS) {
+  for (const { name, harness } of HARNESS_WRAPPER_COMMANDS) {
     const target = path.join(binDir, name);
     try {
       await access(target);

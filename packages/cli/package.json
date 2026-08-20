@@ -1,6 +1,6 @@
 {
   "name": "@aiandrelay/cli",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "CLI for routing Claude Code, OpenCode, Codex, Pi Code, Prime Agent, Hermes Agent, DeepSeek Harness, Grok Build, and omp through ai&",
   "license": "MIT",
   "bin": {
