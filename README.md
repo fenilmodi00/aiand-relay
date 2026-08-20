@@ -46,7 +46,7 @@ If the underlying agent CLI (Claude Code, Codex, etc.) isn't installed, the rela
 
 ## Usage
 
-Pick a tool interactively:
+Pick a tool interactively (TTY). The menu is built from every shipped harness — installed tools first, then missing ones marked `(not installed)` — plus ChatGPT Desktop and Configure:
 
 ```bash
 aiandrelay
@@ -171,7 +171,7 @@ harnesses hold the key and call ai& directly, which is why they report
 `$0.00`. `AIANDRELAY_METER=1` points them at the daemon instead:
 
 ```bash
-AIANDRELAY_METER=1 npi --print "..."
+AIANDRELAY_METER=1 api --print "..."
 # ai& Relay ▸ Launching Pi Code with ai&.
 # [aiandrelay cost] session total: $0.0056 (1,518 in, 69 out)
 ```
