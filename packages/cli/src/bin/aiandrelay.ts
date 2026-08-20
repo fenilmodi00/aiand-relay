@@ -4,8 +4,11 @@ import { loadEnvFile } from "../lib/load-env.js";
 import { parseArgs } from "../lib/parse-args.js";
 import { printHelp, runConfigure } from "../lib/commands/global.js";
 import { dispatchHarnessCommand } from "../lib/commands/harness.js";
-import { detectInstalledHarness } from "../lib/detect.js";
-import type { HarnessId } from "../lib/harness.js";
+import {
+  interactiveLauncherOptions,
+  LAUNCHER_CHATGPT,
+  LAUNCHER_CONFIGURE,
+} from "../lib/interactive-launcher-options.js";
 import { isHarnessCommand, resolveHarnessInvocation } from "../lib/commands/harness-invocation.js";
 import { ensureApiKeyInteractive } from "../lib/ensure-api-key.js";
 import { readGlobalConfig, resolveStoredApiKey } from "../lib/global-config.js";
@@ -96,17 +99,17 @@ async function runInteractiveLauncher(): Promise<void> {
   const clack = await import("@clack/prompts");
   const choice = await clack.select({
     message: "What do you want to run?",
-    options: launcherOptions(),
+    options: interactiveLauncherOptions(),
   });
   if (clack.isCancel(choice)) {
     clack.cancel("Cancelled.");
     return;
   }
-  if (choice === "configure") {
+  if (choice === LAUNCHER_CONFIGURE) {
     await runConfigure();
     return;
   }
-  if (choice === "chatgpt") {
+  if (choice === LAUNCHER_CHATGPT) {
     // ChatGPT Desktop (the former Codex desktop app, merged in 2026). Routes
     // to the same codex-app flow as `aiandrelay chatgpt` / `codex-app`.
     const { runCodexAppCommand } = await import("../lib/codex-app.js");
@@ -121,38 +124,6 @@ async function runInteractiveLauncher(): Promise<void> {
   }
 
   await dispatchHarnessCommand(choice, "run", {});
-}
-
-/**
- * Launcher entries, with tools you actually have installed listed first - an
- * install-ordered menu beats a fixed one when only some harnesses are present.
- */
-function launcherOptions(): Array<{ value: string; label: string; hint: string }> {
-  const harnesses = [
-    { value: "codex", label: "Codex", hint: "acodex" },
-    { value: "claude", label: "Claude Code", hint: "aclaude" },
-    { value: "pi", label: "Pi Code", hint: "api" },
-    { value: "opencode", label: "OpenCode", hint: "aopencode" },
-    { value: "prime", label: "Prime Agent", hint: "aprime" },
-    { value: "hermes", label: "Hermes Agent", hint: "ahermes" },
-    { value: "deepseek", label: "DeepSeek Harness", hint: "adeepseek (alpha)" },
-    { value: "grok", label: "Grok Build", hint: "agrok" },
-    { value: "omp", label: "omp", hint: "aomp" },
-  ];
-  const installed: typeof harnesses = [];
-  const missing: typeof harnesses = [];
-  for (const entry of harnesses) {
-    const detected = detectInstalledHarness(entry.value as HarnessId).installed;
-    (detected ? installed : missing).push(
-      detected ? entry : { ...entry, hint: `${entry.hint} (not installed)` },
-    );
-  }
-  return [
-    ...installed,
-    ...missing,
-    { value: "chatgpt", label: "ChatGPT Desktop", hint: "chatgpt" },
-    { value: "configure", label: "Configure", hint: "API keys and detected tools" },
-  ];
 }
 
 function isInteractive(): boolean {

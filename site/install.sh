@@ -459,4 +459,6 @@ else
   prompt_required_api_key
 fi
 
-bold "Done. Run \`aiandrelay help\` to get started."
+# Finish screen: colored ai& logo + install check.
+FORCE_COLOR=1 PATH="$BIN_DIR:$PATH" aiandrelay banner install || true
+info "Run \`aiandrelay help\` to get started. Leave later with \`aiandrelay uninstall\`."
