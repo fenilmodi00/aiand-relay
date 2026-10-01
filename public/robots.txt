@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://aiand-relay-6eb9031f.onbld.com/sitemap.xml
