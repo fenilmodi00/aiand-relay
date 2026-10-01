@@ -26,10 +26,6 @@
   --color-aiand: #e2091a; /* ai& signature red */
   --color-aiand-deep: #c70007; /* ai& red deep stop */
   --color-aiand-ink: #151517;
-  --color-lime: #e2091a; /* legacy token now maps to ai& red */
-  --color-lime-ink: #c70007;
-  --color-violet: #151517; /* primary CTA / accents -> graphite */
-  --color-violet-soft: #f4f4f5;
   --color-surface: #151517; /* dark feature surface */
   --color-surface-2: #303037; /* dark surface gradient stop */
 }
@@ -55,7 +51,7 @@
   }
 
   ::selection {
-    background: var(--color-violet);
+    background: var(--color-aiand);
     color: #ffffff;
   }
 }

@@ -9,7 +9,7 @@ configuration, so you can get straight to building.
 - Keep your settings. Connect OpenCode while preserving your existing providers and chosen model.
 - See models and prices. Explore the catalog in your billing currency.
 
-Site: https://aiand-relay-6eb9031f.onbld.com/
+Site: https://aiand-relay-6eb9031f.onbld.com
 Docs: https://docs.aiand.com
 Console: https://console.aiand.com
 GitHub: https://github.com/aiandlabs/aiand-cli
@@ -258,7 +258,22 @@ that gate on it keep working during an outage.
 - Docs: https://docs.aiand.com
 - Console: https://console.aiand.com
 - npm: https://www.npmjs.com/package/@aiand/cli
-- Site: https://aiand-relay-6eb9031f.onbld.com/
+- Site: https://aiand-relay-6eb9031f.onbld.com
+
+## Roadmap
+
+- Files: uploads for vision, video, audio, and document inputs
+- Billing: balance, history, auto-recharge, redemption codes
+- Video: asynchronous generation jobs
+
+## Contributing and security
+
+Building from source, tests, and releases:
+https://github.com/aiandlabs/aiand-cli/blob/main/CONTRIBUTING.md
+Report vulnerabilities privately:
+https://github.com/aiandlabs/aiand-cli/blob/main/SECURITY.md
+People who have helped build aiand-cli:
+https://github.com/aiandlabs/aiand-cli/blob/main/THANKS.md
 
 ## License
 

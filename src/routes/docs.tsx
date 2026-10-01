@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Check, Copy, Link as LinkIcon, Search } from "lucide-react";
+import {
+  ArrowUpRight,
+  Check,
+  ChevronRight,
+  Copy,
+  Link as LinkIcon,
+  Search,
+} from "lucide-react";
 import { ProviderBrand } from "../components/ProviderBrand";
 import {
   ClaudeMark,
@@ -18,6 +25,48 @@ import {
 import { pageHead, siteUrl, structuredData } from "../lib/seo";
 import "../styles/landing.css";
 import "../styles/docs.css";
+
+/** Local copy of the landing page's reveal hook, so both routes can animate alone. */
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
+  return { ref, inView };
+}
+
+/** The landing page's fade-up, one per section, once it scrolls into view. */
+function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
+  const { ref, inView } = useInView(0.12);
+  return (
+    <div
+      className="docs-reveal"
+      ref={ref}
+      style={
+        inView
+          ? {
+              animation: `fade-up 600ms cubic-bezier(0.23,1,0.32,1) ${delay}ms both`,
+            }
+          : { opacity: 0, transform: "translateY(16px)" }
+      }
+    >
+      {children}
+    </div>
+  );
+}
 
 const npmInstall = "npm install -g @aiand/cli";
 const curlInstall =
@@ -58,6 +107,22 @@ export const Route = createFileRoute("/docs")({
     ],
   }),
 });
+
+type UpcomingAgent = { name: string; command: string; mark: ReactNode };
+
+/**
+ * Agents the CLI does not wire yet. Kept visible as a roadmap, with the same
+ * `on / off / status` shape the three shipped agents use.
+ */
+const upcomingAgents: UpcomingAgent[] = [
+  { name: "Pi Code", command: "aiand pi on", mark: <PiMark /> },
+  { name: "Prime Agent", command: "aiand prime on", mark: <PrimeMark /> },
+  { name: "Hermes Agent", command: "aiand hermes on", mark: <HermesMark /> },
+  { name: "DeepSeek", command: "aiand deepseek on", mark: <DeepSeekMark /> },
+  { name: "Grok Build", command: "aiand grok on", mark: <GrokMark /> },
+  { name: "Unreal Agent", command: "aiand unreal on", mark: <UnrealMark /> },
+  { name: "omp", command: "aiand omp on", mark: <OmpMark /> },
+];
 
 /** Section ids drive both the sidebar and the scroll-spy highlight. */
 const sections = [
@@ -181,13 +246,14 @@ function Docs() {
       <header className="relay-nav-container docs-header">
         <div className="relay-nav wrap">
           <a className="relay-brand" href="/" aria-label="ai& CLI home">
-            <img src="/aiandrelay-logo.svg" alt="ai& Relay" width="36" height="36" />
+            <img src="/aiand-logo.png" alt="ai& CLI" width="32" height="32" />
             <span>
               <b>ai& CLI</b>
             </span>
           </a>
           <nav aria-label="Main navigation">
             <a href="/">Home</a>
+            <a href="/models">Models</a>
             <a href={githubUrl} target="_blank" rel="noopener noreferrer">
               GitHub <ArrowUpRight size={14} />
             </a>
@@ -490,27 +556,19 @@ function Docs() {
               install for them today.
             </P>
             <Table head={["Agent", "Status", "Command"]}>
-              {[
-                ["Pi Code", <PiMark key="pi" />, "aiand pi on"],
-                ["Prime Agent", <PrimeMark key="prime" />, "aiand prime on"],
-                ["Hermes Agent", <HermesMark key="hermes" />, "aiand hermes on"],
-                ["DeepSeek", <DeepSeekMark key="deepseek" />, "aiand deepseek on"],
-                ["Grok Build", <GrokMark key="grok" />, "aiand grok on"],
-                ["Unreal Agent", <UnrealMark key="unreal" />, "aiand unreal on"],
-                ["omp", <OmpMark key="omp" />, "aiand omp on"],
-              ].map(([name, mark, cmd]) => (
-                <Row key={name as string}>
+              {upcomingAgents.map((agent) => (
+                <Row key={agent.name}>
                   <Cell strong>
                     <span className="flex items-center gap-2">
                       <span className="flex h-4 w-4 items-center justify-center [&>svg]:h-4 [&>svg]:w-4 [&>img]:h-4 [&>img]:w-4">
-                        {mark as ReactNode}
+                        {agent.mark}
                       </span>
-                      {name as string}
+                      {agent.name}
                     </span>
                   </Cell>
                   <Cell>Upcoming</Cell>
                   <Cell>
-                    <Code>{cmd as string}</Code>
+                    <Code>{agent.command}</Code>
                   </Cell>
                 </Row>
               ))}
@@ -677,7 +735,10 @@ function Docs() {
 
           <Section id="troubleshooting" title="Troubleshooting">
             <details className="docs-faq">
-              <summary>Browser sign-in cannot finish</summary>
+              <summary>
+                <span>Browser sign-in cannot finish</span>
+                <ChevronRight size={16} />
+              </summary>
               <P>
                 If there is no browser, a timeout, or a script with no terminal,
                 aiand switches to a device code you approve from any device. To
@@ -688,7 +749,10 @@ function Docs() {
               <CopyBox text="AIAND_NO_BROWSER=1 aiand login" />
             </details>
             <details className="docs-faq">
-              <summary>Command not found after installation, or Node version errors</summary>
+              <summary>
+                <span>Command not found after installation, or Node version errors</span>
+                <ChevronRight size={16} />
+              </summary>
               <P>
                 aiand CLI requires Node.js 22 or newer - check with{" "}
                 <Code>node --version</Code> and upgrade if needed. If your shell
@@ -700,7 +764,10 @@ function Docs() {
               <CopyBox text="node --version" />
             </details>
             <details className="docs-faq">
-              <summary>Requests fail after a key rotation</summary>
+              <summary>
+                <span>Requests fail after a key rotation</span>
+                <ChevronRight size={16} />
+              </summary>
               <P>
                 Keys last 30 days and rotate automatically during their last 3
                 days, or right away if the server rejects one. Agents aiand wired
@@ -712,7 +779,10 @@ function Docs() {
               <CopyBox text="aiand whoami" />
             </details>
             <details className="docs-faq">
-              <summary>An agent config ended up in a state you do not want</summary>
+              <summary>
+                <span>An agent config ended up in a state you do not want</span>
+                <ChevronRight size={16} />
+              </summary>
               <P>
                 <Code>aiand &lt;agent&gt; off</Code> removes exactly what aiand
                 added. If that is not enough,{" "}
@@ -768,20 +838,26 @@ function Docs() {
 }
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  // Stagger by position in the sidebar, capped so deep sections still land promptly.
+  const position = sections.findIndex((section) => section.id === id);
+  const delay = Math.min(Math.max(position, 0), 4) * 60;
   return (
+    // The id stays on the section: anchors and the scroll-spy read it from here.
     <section id={id} className="docs-section">
-      <h2>
-        {title}
-        <a
-          className="section-anchor"
-          href={`#${id}`}
-          aria-label={`Link to ${title}`}
-          title={`Link to ${title}`}
-        >
-          <LinkIcon size={16} />
-        </a>
-      </h2>
-      <div className="mt-4">{children}</div>
+      <Reveal delay={delay}>
+        <h2>
+          {title}
+          <a
+            className="section-anchor"
+            href={`#${id}`}
+            aria-label={`Link to ${title}`}
+            title={`Link to ${title}`}
+          >
+            <LinkIcon size={16} />
+          </a>
+        </h2>
+        <div className="mt-4">{children}</div>
+      </Reveal>
     </section>
   );
 }
@@ -805,7 +881,7 @@ function Code({ children }: { children: ReactNode }) {
 function Link({ href, children }: { href: string; children: ReactNode }) {
   return (
     <a
-      className="text-violet underline underline-offset-2 transition hover:text-ink"
+      className="text-aiand underline underline-offset-2 transition hover:text-ink"
       href={href}
       target="_blank"
       rel="noopener noreferrer"

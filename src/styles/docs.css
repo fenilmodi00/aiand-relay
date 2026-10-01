@@ -10,6 +10,22 @@
   --color-lime-ink: #fafafa;
   font-family: var(--font-sans), sans-serif;
 }
+/* One slow drift, quieter than the landing page's: the same ambientDrift easing
+   feel, under 0.06 opacity, so the docs feel alive without pulling focus. */
+.docs-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(46rem 34rem at 16% 4%, #e2091a, rgba(226, 9, 26, 0) 62%),
+    radial-gradient(40rem 30rem at 86% 28%, #18181b, rgba(24, 24, 27, 0) 64%);
+  background-size: 160% 160%, 160% 160%;
+  background-repeat: no-repeat;
+  opacity: 0.05;
+  animation: ambientDrift1 46s ease-in-out infinite;
+}
 .docs-header {
   border-bottom: 1px solid var(--relay-line);
 }
@@ -22,6 +38,9 @@
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 60px;
+  /* Above .docs-page::after, the ambient wash. */
+  position: relative;
+  z-index: 1;
 }
 .docs-sidebar {
   border-right: 1px solid var(--color-line);
@@ -54,10 +73,13 @@
   border-radius: 5px;
   margin-bottom: 28px;
   color: #71717a;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 .docs-search:focus-within {
-  outline: 2px solid #a1a1aa;
-  outline-offset: 2px;
+  border-color: #e2091a;
+  box-shadow: 0 0 0 3px rgba(226, 9, 26, 0.18);
 }
 .docs-search input {
   width: 100%;
@@ -81,18 +103,40 @@
   padding: 9px 12px;
   color: #52525b;
   font-size: 13px;
-  transition: all 0.15s ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
   border-radius: 6px;
 }
 .docs-sidebar nav a:hover {
   background: #f4f4f5;
   color: #18181b;
+  transform: translateX(2px);
 }
 .docs-sidebar nav a[aria-current] {
+  position: relative;
   background: #f4f4f5;
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
   color: #18181b;
   font-weight: 600;
+  transition:
+    background 200ms ease,
+    color 200ms ease,
+    box-shadow 200ms ease;
+}
+/* ai& red accent bar on the current section. A ::before keeps the label where it
+   is; a border-left would nudge the text by 2px every time the spy moves. */
+.docs-sidebar nav a[aria-current]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 60%;
+  border-radius: 999px;
+  background: #e2091a;
 }
 .docs-sidebar-links {
   margin-top: 24px;
@@ -120,6 +164,16 @@
 .docs-intro {
   padding-bottom: 32px;
   border-bottom: 1px solid var(--relay-line);
+}
+/* Quiet ai& signature above the docs title. */
+.docs-intro::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2091a, rgba(226, 9, 26, 0));
+  margin-bottom: 20px;
 }
 .docs-intro h1 {
   margin: 0;
@@ -164,13 +218,18 @@
   align-items: center;
   gap: 12px;
   font-size: 25px;
+  transition: color 200ms ease;
 }
 .section-anchor {
   color: #d4d4d8;
   padding: 4px;
+  transition:
+    color 200ms ease,
+    transform 200ms ease;
 }
 .section-anchor:hover {
   color: #18181b;
+  transform: translateY(-1px);
 }
 .docs-section p {
   font-size: 14px;
@@ -202,6 +261,7 @@
 }
 .docs-table tr:hover td {
   background: #f4f4f5;
+  transition: background 150ms ease;
 }
 .docs-table code {
   font-size: 12px;
@@ -210,8 +270,16 @@
   margin-top: 14px;
   position: relative;
   background: #18181b;
+  border: 1px solid transparent;
   border-radius: 6px;
   color: #fafafa;
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease;
+}
+.docs-copy-block:hover {
+  transform: translateY(-1px);
+  border-color: rgba(226, 9, 26, 0.55);
 }
 .docs-command {
   display: flex;
@@ -252,15 +320,28 @@
   padding: 18px 0;
 }
 .docs-faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
   font-size: 14px;
   font-weight: 550;
   cursor: pointer;
 }
+/* The chevron replaces the native marker, so hide it in both engines. */
+.docs-faq summary::-webkit-details-marker {
+  display: none;
+}
+.docs-faq summary svg {
+  flex-shrink: 0;
+  transition: transform 200ms ease;
+}
+.docs-faq[open] summary svg {
+  transform: rotate(90deg);
+}
 .docs-faq[open] summary {
   margin-bottom: 14px;
-}
-.docs-faq summary::marker {
-  color: #18181b;
 }
 .docs-faq p a {
   text-decoration: underline;
@@ -310,6 +391,14 @@
     border: 1px solid #d4d4d8;
     border-radius: 4px;
     background: #f4f4f5;
+    transition:
+      border-color 200ms ease,
+      box-shadow 200ms ease;
+  }
+  .docs-mobile-nav select:focus {
+    outline: none;
+    border-color: #e2091a;
+    box-shadow: 0 0 0 3px rgba(226, 9, 26, 0.18);
   }
   .docs-content {
     padding-top: 0;
@@ -339,5 +428,37 @@
   }
   .docs-header nav > a:not(.button) {
     display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The reveal is the only real motion here; show the text right away. The
+     !important is needed because Reveal drives opacity and transform inline. */
+  .docs-reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .docs-page::after {
+    animation: none;
+  }
+  .docs-sidebar nav a,
+  .docs-sidebar nav a:hover,
+  .docs-search,
+  .docs-mobile-nav select,
+  .docs-table tr:hover td,
+  .docs-copy-block,
+  .docs-copy-block:hover,
+  .docs-section h2,
+  .section-anchor,
+  .section-anchor:hover,
+  .docs-faq summary svg {
+    transition: none;
+  }
+  /* Hover lifts are 1px and settle at once, but there is no reason to move
+     anything at all. The open FAQ chevron still rotates: that is a state. */
+  .docs-sidebar nav a:hover,
+  .docs-copy-block:hover,
+  .section-anchor:hover {
+    transform: none;
   }
 }

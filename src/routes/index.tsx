@@ -30,7 +30,14 @@ import {
   OmpMark,
 } from "../components/ProviderBrand";
 import { ThinkingState, useSequence } from "../components/ThinkingState";
-import { SpinnerRing, Badge, CheckIcon, TaskRow } from "../components/TaskRows";
+import {
+  SpinnerRing,
+  Badge,
+  CheckIcon,
+  TaskRows,
+  type TaskRow,
+} from "../components/TaskRows";
+import ToolChips from "../components/ToolChips";
 import { pageHead, siteUrl, structuredData } from "../lib/seo";
 import { useEffect, useRef, useState } from "react";
 
@@ -193,8 +200,8 @@ const features = [
     body: "aiand models shows the live catalog with prices in your billing currency. aiand logs and aiand usage cover your whole organization.",
   },
   {
-    title: "Profiles for work and personal",
-    body: "Separate sign-ins per profile. Flags win over env vars, which win over the stored profile. Every command takes --help, most take --json.",
+    title: "One status check, every agent",
+    body: "aiand status shows which agents are wired and which are still coming. aiand init detects everything at once, or wire one agent at a time.",
   },
 ];
 
@@ -254,8 +261,8 @@ function Home() {
       </a>
       <div className="relay-nav-container">
         <header className="relay-nav wrap">
-          <a className="relay-brand" href="/" aria-label="ai& Relay home">
-            <img src="/aiandrelay-logo.svg" alt="ai& Relay" style={{ height: 32 }} />
+          <a className="relay-brand" href="/" aria-label="ai& CLI home">
+            <img src="/aiand-logo.png" alt="ai& CLI" style={{ height: 32, width: 32 }} />
           </a>
           <nav aria-label="Main navigation">
             <a href="#agents">Agents</a>
@@ -288,13 +295,7 @@ function Home() {
               <div className="hero-eyebrow-container">
                 <div className="hero-eyebrow-logos">
                   <div className="eyebrow-logo">
-                    <OpenCodeMark />
-                  </div>
-                  <div className="eyebrow-logo">
-                    <ClaudeMark />
-                  </div>
-                  <div className="eyebrow-logo">
-                    <CodexMark />
+                    <img src="/aiand-logo.png" alt="" width="22" height="22" />
                   </div>
                 </div>
                 <p className="eyebrow">LESS SETUP. MORE BUILDING.</p>
@@ -322,9 +323,45 @@ function Home() {
                 Sign in through your browser, keep your settings, see models and prices.
               </p>
               <div className="hero-meta">
-                <span>OpenCode · Claude · Codex</span>
-                <span>macOS · Linux · Windows</span>
-                <span>Node.js 22+</span>
+                <span>
+                  <img
+                    src="/logos/opensource.png"
+                    alt=""
+                    style={{ width: 14, height: 14, objectFit: "contain" }}
+                  />{" "}
+                  Open source
+                </span>
+                <span>
+                  <span style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                    <img
+                      src="/logos/mac.png"
+                      alt=""
+                      style={{ width: 14, height: 14, objectFit: "contain" }}
+                    />
+                    <img
+                      src="/logos/linux.png"
+                      alt=""
+                      style={{ width: 14, height: 14, objectFit: "contain" }}
+                    />
+                  </span>
+                  macOS &amp; Linux
+                </span>
+                <span>
+                  <img
+                    src="/logos/windows.png"
+                    alt=""
+                    style={{ width: 14, height: 14, objectFit: "contain" }}
+                  />{" "}
+                  Windows
+                </span>
+                <span>
+                  <img
+                    src="/logos/config.png"
+                    alt=""
+                    style={{ width: 14, height: 14, objectFit: "contain" }}
+                  />{" "}
+                  Config-free
+                </span>
               </div>
             </div>
           </div>
@@ -394,7 +431,7 @@ function Home() {
             </span>
           </a>
         </div>
-        <section className="agent-strip wrap" aria-label="Supported agents">
+        <section className="agent-strip wrap" aria-label="Supported and upcoming agents">
           <span className="eyebrow">
             SAME TOOLS.
             <br />
@@ -553,10 +590,16 @@ function Home() {
             <div className="feature-grid" ref={featuresRef}>
               {features.map((feature, i) => {
                 const Icon = [Cable, Search, ChartNoAxesCombined, ShieldCheck][i];
+                // Card 3 is the wide one: text left, animated graphic right.
+                const horizontal = i === 3;
                 return (
                   <article
                     key={feature.title}
-                    className={`feature-card feature-card-${i}`}
+                    className={
+                      horizontal
+                        ? "feature-card feature-card-3 feature-card-horizontal"
+                        : `feature-card feature-card-${i}`
+                    }
                     style={
                       featuresInView
                         ? {
@@ -565,24 +608,12 @@ function Home() {
                         : { opacity: 0, transform: "translateY(16px)" }
                     }
                   >
-                    <div className="feature-card-text">
-                      <div className="feature-icon-wrapper">
-                        <Icon size={20} strokeWidth={2} />
-                      </div>
-                      <h3>{feature.title}</h3>
-                      <p>{feature.body}</p>
-                    </div>
+                    <FeatureCardText feature={feature} icon={Icon} horizontal={horizontal} />
                     <div className="feature-graphic-container">
                       {i === 0 && <FeatureGraphic0 />}
                       {i === 1 && <FeatureGraphic1 />}
                       {i === 2 && <FeatureGraphic2 />}
-                      {i === 3 && (
-                        <div style={{ padding: 24, fontSize: 13, color: "#55555c" }}>
-                          <code>aiand config use work</code>
-                          <br />
-                          <code>AIAND_PROFILE=personal aiand status</code>
-                        </div>
-                      )}
+                      {i === 3 && <FeatureGraphic3 />}
                     </div>
                   </article>
                 );
@@ -804,6 +835,33 @@ function Step3Graphic() {
   );
 }
 
+type Feature = {
+  title: string;
+  body: string;
+};
+
+/* Shared icon + copy block for every feature card. The wide card adds
+   the `feature-card-text-left` modifier that the horizontal CSS reads. */
+function FeatureCardText({
+  feature,
+  icon: Icon,
+  horizontal,
+}: {
+  feature: Feature;
+  icon: typeof Cable;
+  horizontal?: boolean;
+}) {
+  return (
+    <div className={horizontal ? "feature-card-text feature-card-text-left" : "feature-card-text"}>
+      <div className="feature-icon-wrapper">
+        <Icon size={20} strokeWidth={2} />
+      </div>
+      <h3>{feature.title}</h3>
+      <p>{feature.body}</p>
+    </div>
+  );
+}
+
 function FeatureGraphic0() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
@@ -824,16 +882,14 @@ function FeatureGraphic1() {
   );
 }
 
-import ToolChips from "../components/ToolChips";
-
 const COST_ROWS = [
   {
     icon: "think",
     label: "Check wiring",
     chip: "aiand status",
-    mono: false,
+    mono: true,
     detailMono: false,
-    detail: [{ text: "Signed in as you" }, { text: "opencode: on" }],
+    detail: [{ text: "Signed in as you" }, { text: "opencode, claude, codex: on" }],
   },
   {
     icon: "read",
@@ -864,6 +920,8 @@ const COST_ROWS = [
   },
 ];
 
+/* `aiand status` reports the files it wrote when wiring agents — so the
+   diff chips are the config ai& touched, not source edits. */
 const COST_DIFFS = [
   { file: "opencode.json", add: 4, del: 0 },
   { file: "settings.json", add: 8, del: 1 },
@@ -878,6 +936,39 @@ function FeatureGraphic2() {
         className="w-full"
         labels={{ header: "aiand status · models · logs", more: "" }}
       />
+    </div>
+  );
+}
+
+const UPDATE_ROWS: TaskRow[] = [
+  {
+    key: "status",
+    label: "Check agents",
+    amount: "3 wired",
+    status: "done",
+    details: [
+      { label: "opencode", meta: "on" },
+      { label: "claude", meta: "on" },
+      { label: "codex", meta: "on" },
+    ],
+  },
+  {
+    key: "upcoming",
+    label: "Next agents",
+    amount: "7 planned",
+    status: "sequence",
+    step: 2,
+    details: [
+      { label: "pi, prime, hermes", meta: "Planned" },
+      { label: "deepseek, grok, unreal, omp", meta: "Planned" },
+    ],
+  },
+];
+
+function FeatureGraphic3() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center" style={{ padding: "20px 24px" }}>
+      <TaskRows rows={UPDATE_ROWS} className="w-full" />
     </div>
   );
 }
